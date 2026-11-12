@@ -1,0 +1,146 @@
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { api } from "../api/client";
+import type { Lang, RulesCatalog } from "../api/types";
+import Spinner from "../components/common/Spinner";
+import StatusBadge from "../components/common/StatusBadge";
+
+function fmtValue(v: unknown): string {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "object") return Object.entries(v as Record<string, unknown>).map(([k, x]) => `${k}: ${String(x)}`).join(", ");
+  return String(v);
+}
+
+export default function Methodology() {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language as Lang;
+  const [data, setData] = useState<RulesCatalog | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [onlyAssumptions, setOnlyAssumptions] = useState(false);
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    api.rules().then(setData).catch((e: Error) => setError(e.message));
+  }, []);
+
+  if (error) return <p className="card text-red-900">{t("app.network_error")}</p>;
+  if (!data) return <Spinner label={t("app.loading")} />;
+
+  const params = data.params.filter(
+    (p) => (!onlyAssumptions || p.status === "assumption") && (!query || `${p.path} ${p.note} ${p.source.name}`.toLowerCase().includes(query.toLowerCase())),
+  );
+
+  return (
+    <div className="space-y-8">
+      <header className="space-y-2">
+        <h1 className="h1">{t("methodology.title")}</h1>
+        <p className="text-lg">{t("methodology.lead")}</p>
+        <p className="font-semibold">{t("methodology.counts", data.counts)}</p>
+      </header>
+
+      <section className="card space-y-2">
+        <h2 className="h2">{t("methodology.model_title")}</h2>
+        <ol className="list-decimal space-y-2 pl-5">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <li key={i}>{t(`methodology.model_${i}`)}</li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="h2">{t("methodology.sources_title")}</h2>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {data.data_sources.map((s) => (
+            <article key={s.id} className="card space-y-2 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="h3">{s.title}</h3>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${s.state === "active" ? "bg-field-100 text-field-800" : "bg-neutral-200 text-neutral-800"}`}>
+                  {t(`methodology.state.${s.state}`)}
+                </span>
+              </div>
+              <p className="text-neutral-700">{s.provider} · <a href={s.url} target="_blank" rel="noreferrer">{s.url}</a>{s.doi && <> · <a href={s.doi} target="_blank" rel="noreferrer">DOI</a></>}</p>
+              <dl className="space-y-1.5">
+                {(
+                  [
+                    ["used_for", s.used_for],
+                    ["provenance", s.provenance],
+                    ["resolution", s.spatial_resolution],
+                    ["coverage", s.temporal_coverage],
+                    ["access", s.access],
+                    ["limitations", s.limitations],
+                  ] as const
+                ).map(([k, v]) => (
+                  <div key={k}>
+                    <dt className="font-semibold">{t(`methodology.${k}`)}</dt>
+                    <dd>{v[lang]}</dd>
+                  </div>
+                ))}
+                <div>
+                  <dt className="font-semibold">{t("methodology.checked")}</dt>
+                  <dd className="text-neutral-700">{s.checked}</dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="card space-y-2">
+        <h2 className="h2">{t("methodology.limits_title")}</h2>
+        <ul className="list-disc space-y-1.5 pl-5">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <li key={i}>{t(`methodology.limit_${i}`)}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="h2">{t("methodology.rules_title")}</h2>
+        <div className="flex flex-wrap gap-3">
+          <div role="group" className="flex overflow-hidden rounded-xl border-2 border-field-700">
+            <button type="button" className={`px-4 py-2 font-semibold ${!onlyAssumptions ? "bg-field-700 text-white" : ""}`} onClick={() => setOnlyAssumptions(false)}>{t("methodology.filter_all")}</button>
+            <button type="button" className={`px-4 py-2 font-semibold ${onlyAssumptions ? "bg-field-700 text-white" : ""}`} onClick={() => setOnlyAssumptions(true)}>{t("methodology.filter_assumption")}</button>
+          </div>
+          <input className="input max-w-xs" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="wheat, ky, price…" />
+        </div>
+        <div className="card overflow-x-auto p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-field-100 text-left">
+              <tr>
+                <th className="px-3 py-2">{t("methodology.col_rule")}</th>
+                <th className="px-3 py-2">{t("methodology.col_value")}</th>
+                <th className="px-3 py-2">{t("methodology.col_status")}</th>
+                <th className="px-3 py-2">{t("methodology.col_source")}</th>
+                <th className="px-3 py-2">{t("methodology.col_note")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {params.map((p) => (
+                <tr key={p.path} className="border-t align-top">
+                  <td className="px-3 py-2"><code className="text-xs">{p.path}</code></td>
+                  <td className="whitespace-nowrap px-3 py-2 font-semibold">{fmtValue(p.value)} {p.unit}</td>
+                  <td className="px-3 py-2"><StatusBadge status={p.status} /></td>
+                  <td className="px-3 py-2">
+                    {p.source.url.startsWith("http") ? <a href={p.source.url} target="_blank" rel="noreferrer">{p.source.name}</a> : <span>{p.source.name} <span className="text-amber-900">({p.source.url})</span></span>}
+                  </td>
+                  <td className="px-3 py-2 text-neutral-700">{p.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {data.todo_sources.length > 0 && (
+        <section className="card space-y-2">
+          <h2 className="h3">{t("methodology.todo_title")}</h2>
+          <ul className="list-disc pl-5 text-sm">
+            {data.todo_sources.map((s) => (
+              <li key={s.id}>{s.name}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
