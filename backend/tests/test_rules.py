@@ -38,13 +38,32 @@ def test_required_crops_regions_and_variants(rules):
     assert rules.crops["wheat"]["nitrogen_fixing"] is False
 
 
-def test_task_statement_anchors_are_recorded_as_such(rules):
-    """Опоры из постановки: пшеница 65–70 тыс. тенге/т, лён и рапс от 200 тыс."""
-    wheat = rules.crop("wheat")["price_kzt_t"]
-    assert 65000 <= wheat.value <= 70000 and wheat.source_id == "task_statement"
-    for cid in ("flax", "rapeseed"):
+def test_prices_come_from_one_document_and_date(rules):
+    """Аудит: цены нельзя смешивать из разных источников и дат — это искажает сравнение культур.
+    Все культуры, для которых есть цена в рекомендациях МСХ РК от 27.07.2026, берут её оттуда."""
+    for cid in ("wheat", "lentil", "pea", "flax", "rapeseed", "sunflower"):
         p = rules.crop(cid)["price_kzt_t"]
-        assert p.value >= 200000 and p.source_id == "task_statement"
+        assert p.source_id == "moa_prices_2026" and p.status == "verified", cid
+    assert rules.crop("wheat")["price_kzt_t"].value == 104000  # 3 класс, клейковина до 25 %
+
+
+def test_every_param_has_evidence_class(rules):
+    from app.model.rules import EVIDENCE
+
+    for p in rules.all_params():
+        assert p.evidence in EVIDENCE, p.path
+        if p.status == "verified":
+            assert p.evidence in ("literature", "definition"), p.path
+        if p.evidence == "preliminary":
+            assert p.status == "assumption", p.path
+
+
+def test_fao_ky_values_match_fao56_table24(rules):
+    # FAO-56, табл. 24 (сверено с текстом FAO): Spring wheat 1.15, Peas 1.15, Sunflower 0.95;
+    # для культур без данных FAO рекомендует Ky = 1
+    expected = {"wheat": 1.15, "pea": 1.15, "sunflower": 0.95, "lentil": 1.0, "chickpea": 1.0, "flax": 1.0, "rapeseed": 1.0}
+    for cid, ky in expected.items():
+        assert rules.crop(cid)["ky"].value == ky, cid
 
 
 def test_region_reference_is_computed_from_power(rules):
@@ -75,15 +94,23 @@ def _copy_rules(tmp_path):
 def test_loader_rejects_number_without_source(tmp_path):
     d = _copy_rules(tmp_path)
     text = (d / "crops.yaml").read_text(encoding="utf-8")
-    (d / "crops.yaml").write_text(text.replace("source: task_statement, status: assumption", "status: assumption", 1), encoding="utf-8")
+    (d / "crops.yaml").write_text(text.replace("source: expert_guess, status: assumption", "status: assumption", 1), encoding="utf-8")
     with pytest.raises(RulesError, match="missing fields"):
+        load_rules(d)
+
+
+def test_loader_rejects_missing_evidence(tmp_path):
+    d = _copy_rules(tmp_path)
+    text = (d / "crops.yaml").read_text(encoding="utf-8")
+    (d / "crops.yaml").write_text(text.replace(" evidence: preliminary,", "", 1), encoding="utf-8")
+    with pytest.raises(RulesError, match="evidence"):
         load_rules(d)
 
 
 def test_loader_rejects_unknown_source_and_status(tmp_path):
     d = _copy_rules(tmp_path)
     text = (d / "crops.yaml").read_text(encoding="utf-8")
-    (d / "crops.yaml").write_text(text.replace("source: task_statement", "source: made_up", 1), encoding="utf-8")
+    (d / "crops.yaml").write_text(text.replace("source: expert_guess", "source: made_up", 1), encoding="utf-8")
     with pytest.raises(RulesError, match="unknown source"):
         load_rules(d)
     (d / "crops.yaml").write_text(text.replace("source: stat_gov_kz, status: assumption", "source: stat_gov_kz, status: sure", 1), encoding="utf-8")

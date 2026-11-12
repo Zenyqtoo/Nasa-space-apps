@@ -4,6 +4,7 @@ import type { Polygon } from "geojson";
 export type Lang = "ru" | "kk";
 export type I18nText = Record<Lang, string>;
 export type Status = "verified" | "assumption";
+export type Evidence = "literature" | "agronomist_review" | "preliminary" | "definition";
 export type Origin = "live" | "cache" | "demo" | "fallback" | "unavailable" | null;
 
 export interface CropInfo {
@@ -218,6 +219,7 @@ export interface ParamRef {
   value: unknown;
   unit: string;
   status: Status;
+  evidence: Evidence;
   source: string;
   url: string;
 }
@@ -360,6 +362,7 @@ export interface RuleParam {
   unit: string;
   source: { id: string; name: string; url: string };
   status: Status;
+  evidence: Evidence;
   note: string;
 }
 
@@ -382,7 +385,7 @@ export interface DataSourceInfo {
 
 export interface RulesCatalog {
   params: RuleParam[];
-  counts: { total: number; verified: number; assumption: number };
+  counts: { total: number; verified: number; assumption: number; by_evidence: Record<Evidence, number> };
   rule_sources: { id: string; name: string; url: string }[];
   todo_sources: { id: string; name: string; url: string }[];
   data_sources: DataSourceInfo[];

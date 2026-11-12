@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend install test build demo smap offline-check lint
+.PHONY: dev backend frontend install test build demo smap offline-check lint audit
 
 PY ?= python3.11
 VENV := backend/.venv
@@ -38,3 +38,6 @@ smap: ## Скачать ряд SMAP для демо-поля (нужен EARTHDA
 
 offline-check: ## Проверить, что демо проходит до PDF без сети
 	cd backend && OFFLINE=1 .venv/bin/python ../scripts/offline_check.py
+
+audit: ## Воспроизводимый аудит модели на демо-поле (без сети) -> docs/audit/
+	cd backend && .venv/bin/python ../scripts/audit_model.py

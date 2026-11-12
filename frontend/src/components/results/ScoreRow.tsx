@@ -70,6 +70,7 @@ export default function ScoreRow({ k, score }: { k: ScoreKey; score: Score }) {
                     = {typeof p.value === "object" ? JSON.stringify(p.value) : String(p.value)} {p.unit}
                   </span>
                   <StatusBadge status={p.status} />
+                  <span className="text-xs text-neutral-600">{t(`methodology.evidence.${p.evidence}`)}</span>
                 </div>
                 <div className="text-xs text-neutral-700">
                   {t("app.source")}:{" "}

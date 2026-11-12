@@ -16,6 +16,12 @@ import yaml
 
 RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
 STATUSES = {"verified", "assumption"}
+#: Класс обоснованности значения (аудит модели, docs/MODEL_AUDIT.md):
+#:   literature        — значение (или диапазон, в который оно входит) есть в научном/официальном источнике;
+#:   agronomist_review — есть косвенная опора (другой регион, аналог, один год, расчёт), нужна проверка агрономом;
+#:   preliminary       — предварительное допущение без источника или параметр конструкции модели;
+#:   definition        — определение, тривиальное значение или величина, рассчитанная из данных.
+EVIDENCE = {"literature", "agronomist_review", "preliminary", "definition"}
 GROUPS = {"cereal", "legume", "oilseed", "fallow"}
 
 
@@ -33,6 +39,7 @@ class Param:
     source_url: str
     status: str
     note: str = ""
+    evidence: str = ""
 
     @property
     def is_assumption(self) -> bool:
@@ -45,6 +52,7 @@ class Param:
             "unit": self.unit,
             "source": {"id": self.source_id, "name": self.source_name, "url": self.source_url},
             "status": self.status,
+            "evidence": self.evidence,
             "note": self.note,
         }
 
@@ -55,6 +63,7 @@ class Param:
             "value": self.value,
             "unit": self.unit,
             "status": self.status,
+            "evidence": self.evidence,
             "source": self.source_name,
             "url": self.source_url,
         }
@@ -71,6 +80,10 @@ def _convert(node: Any, path: str, sources: dict[str, dict]) -> Any:
             raise RulesError(f"{path}: missing fields {sorted(missing)}")
         if node["status"] not in STATUSES:
             raise RulesError(f"{path}: status must be one of {sorted(STATUSES)}")
+        if node.get("evidence") not in EVIDENCE:
+            raise RulesError(f"{path}: evidence must be one of {sorted(EVIDENCE)}")
+        if node["status"] == "verified" and node["evidence"] not in ("literature", "definition"):
+            raise RulesError(f"{path}: a verified value must have evidence 'literature' or 'definition'")
         src = sources.get(node["source"])
         if src is None:
             raise RulesError(f"{path}: unknown source id '{node['source']}'")
@@ -83,6 +96,7 @@ def _convert(node: Any, path: str, sources: dict[str, dict]) -> Any:
             source_url=src["url"],
             status=node["status"],
             note=str(node.get("note", "")),
+            evidence=str(node.get("evidence", "")),
         )
     if isinstance(node, dict):
         return {k: _convert(v, f"{path}.{k}" if path else str(k), sources) for k, v in node.items()}

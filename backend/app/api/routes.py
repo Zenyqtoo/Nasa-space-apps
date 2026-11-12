@@ -14,7 +14,7 @@ from ..config import get_settings
 from ..data_sources.base import demo_field_record
 from ..data_sources.registry import describe_sources
 from ..geometry import GeometryError
-from ..model.rules import RulesError, get_rules
+from ..model.rules import EVIDENCE, RulesError, get_rules
 from ..schemas import CompareRequest, FieldRequest, ReportRequest, RetroSubmission
 from ..services import layers
 from ..services.analysis import AnalysisError, analyze
@@ -152,6 +152,7 @@ async def rules_catalog() -> dict:
             "total": len(params),
             "verified": sum(1 for p in params if p["status"] == "verified"),
             "assumption": sum(1 for p in params if p["status"] == "assumption"),
+            "by_evidence": {e: sum(1 for p in params if p["evidence"] == e) for e in sorted(EVIDENCE)},
         },
         "predecessors": [
             {"id": r["id"], "predecessor": r["predecessor"], "crop": r["crop"], "same": bool(r.get("same")), **r["yield_effect_pct"].as_dict()}

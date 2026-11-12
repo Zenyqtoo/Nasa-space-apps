@@ -8,7 +8,7 @@ task_statement:
 
 model_design:
   name: "Параметр конструкции модели (выбор разработчиков, не агрономический факт)"
-  url: "https://github.com/Zenyqtoo/Nasa-space-apps/blob/main/README.md"
+  url: "https://github.com/Zenyqtoo/agro-sevooborot/blob/main/docs/MODEL_AUDIT.md"
 
 expert_guess:
   name: "Экспертная оценка разработчиков без первоисточника"
@@ -39,7 +39,7 @@ zentner_1997:
   url: "https://harvest.usask.ca/bitstream/10388/10272/1/R.P.%20Zentner%20et%20al.%2c%201997.pdf"
 
 poga_pea:
-  name: "Alberta extension report AGR 1858: горох по гороху −15 % к гороху после яровой пшеницы"
+  name: "Smith E., Le Roy D., Jeffrey S., Brewin D. Economic Value of Diversified Cropping Systems. WGRF AGR1858, Final Extension Report, 2023 (данные страхования урожая Альберты и Манитобы): горох по гороху 0,85; рапс по рапсу 0,93; пшеница HRS после рапса 1,16, после гороха 1,15 к пшенице по пшенице"
   url: "https://poga.ca/wp-content/uploads/2022/06/Extension-Report-AGR-1858-2023011851350.pdf"
 
 angus_2015:
@@ -51,7 +51,7 @@ walley_2007:
   url: "https://doi.org/10.2134/agronj2006.0314s"
 
 kazhydromet_humus:
-  name: "Журнал «Гидрометеорология и экология» (Казгидромет): чистые потери гумуса под зерновыми 0,5–1 т/га в год, под пропашными в 2–3 раза больше"
+  name: "Саттыбаева З.Д. Изменение плодородия почв при сельскохозяйственном использовании // Гидрометеорология и экология. 2004. № 3: потери гумуса под зерновыми 0,5–1 т/га в год, под пропашными в 2–3 раза больше, на парах на 10 % больше, чем под пропашными"
   url: "https://journal.kazhydromet.kz/kazgidro/article/download/1712/1656/9214"
 
 kazhydromet_moisture:
@@ -59,7 +59,7 @@ kazhydromet_moisture:
   url: "https://www.inform.kz/ru/zapasy-produktivnoy-vlagi-v-pochve-uvelichilis-v-sko_a3929795"
 
 moa_prices_2026:
-  name: "Минсельхоз РК: рекомендации по торговой стратегии для производителей зерна, масличных и бобовых, 27.07.2026 (цены с элеватора)"
+  name: "Минсельхоз РК: рекомендации по торговой стратегии для производителей зерна, масличных и бобовых, 27.07.2026 (цены с элеватора, тг/кг: пшеница 3 кл. 104–115, лён 211, рапс 225, подсолнечник 221, горох 100, чечевица красная 127 без НДС)"
   url: "https://www.gov.kz/memleket/entities/moa/press/news/details/1263807?lang=ru"
 
 wheat_price_2026:
@@ -81,3 +81,11 @@ barayev:
 nasa_power:
   name: "NASA POWER Daily API (MERRA-2), расчёт скриптом scripts/build_region_reference.py"
   url: "https://power.larc.nasa.gov/docs/services/api/temporal/daily/"
+
+akmola_harvest_2025:
+  name: "Итоги уборки 2025 г. в Акмолинской области: 7,6 млн т зерна, средняя урожайность 16,3 ц/га (bizmedia.kz, 02.12.2025); РК 2025 — 16,3 ц/га зерновых и зернобобовых (БНС АСПиР, «Валовый сбор сельскохозяйственных культур за 2025 год»)"
+  url: "https://bizmedia.kz/2025-12-02-uborochnaya-kampaniya-v-akmolinskoj-oblasti-zavershilas-rekordnymi-rezultatami/"
+
+funakawa_2004:
+  name: "Funakawa S. et al. Water dynamics in soil-plant systems under grain farming in northern Kazakhstan, 2004: суммарное испарение посевов 194–259 мм за сезон (1999–2000), урожай линейно связан с испарением"
+  url: "https://agris.fao.org/search/en/records/6472449e08fd68d54600576a"

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
-import type { Lang, RulesCatalog } from "../api/types";
+import type { Evidence, Lang, RulesCatalog } from "../api/types";
 import Spinner from "../components/common/Spinner";
 import StatusBadge from "../components/common/StatusBadge";
 
@@ -18,6 +18,7 @@ export default function Methodology() {
   const [error, setError] = useState<string | null>(null);
   const [onlyAssumptions, setOnlyAssumptions] = useState(false);
   const [query, setQuery] = useState("");
+  const [evidence, setEvidence] = useState<Evidence | "">("");
 
   useEffect(() => {
     api.rules().then(setData).catch((e: Error) => setError(e.message));
@@ -27,7 +28,7 @@ export default function Methodology() {
   if (!data) return <Spinner label={t("app.loading")} />;
 
   const params = data.params.filter(
-    (p) => (!onlyAssumptions || p.status === "assumption") && (!query || `${p.path} ${p.note} ${p.source.name}`.toLowerCase().includes(query.toLowerCase())),
+    (p) => (!onlyAssumptions || p.status === "assumption") && (!evidence || p.evidence === evidence) && (!query || `${p.path} ${p.note} ${p.source.name}`.toLowerCase().includes(query.toLowerCase())),
   );
 
   return (
@@ -36,6 +37,8 @@ export default function Methodology() {
         <h1 className="h1">{t("methodology.title")}</h1>
         <p className="text-lg">{t("methodology.lead")}</p>
         <p className="font-semibold">{t("methodology.counts", data.counts)}</p>
+        <p>{t("methodology.evidence_counts", data.counts.by_evidence)}</p>
+        <p className="text-sm text-neutral-700">{t("methodology.audit_link")}</p>
       </header>
 
       <section className="card space-y-2">
@@ -88,7 +91,7 @@ export default function Methodology() {
       <section className="card space-y-2">
         <h2 className="h2">{t("methodology.limits_title")}</h2>
         <ul className="list-disc space-y-1.5 pl-5">
-          {[1, 2, 3, 4, 5].map((i) => (
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
             <li key={i}>{t(`methodology.limit_${i}`)}</li>
           ))}
         </ul>
@@ -101,6 +104,15 @@ export default function Methodology() {
             <button type="button" className={`px-4 py-2 font-semibold ${!onlyAssumptions ? "bg-field-700 text-white" : ""}`} onClick={() => setOnlyAssumptions(false)}>{t("methodology.filter_all")}</button>
             <button type="button" className={`px-4 py-2 font-semibold ${onlyAssumptions ? "bg-field-700 text-white" : ""}`} onClick={() => setOnlyAssumptions(true)}>{t("methodology.filter_assumption")}</button>
           </div>
+          <label className="flex items-center gap-2">
+            <span className="text-sm font-semibold">{t("methodology.filter_evidence")}</span>
+            <select className="input w-auto" value={evidence} onChange={(e) => setEvidence(e.target.value as Evidence | "")}>
+              <option value="">{t("methodology.filter_evidence_all")}</option>
+              {(["literature", "agronomist_review", "preliminary", "definition"] as const).map((e) => (
+                <option key={e} value={e}>{t(`methodology.evidence.${e}`)}</option>
+              ))}
+            </select>
+          </label>
           <input className="input max-w-xs" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="wheat, ky, price…" />
         </div>
         <div className="card overflow-x-auto p-0">
@@ -110,6 +122,7 @@ export default function Methodology() {
                 <th className="px-3 py-2">{t("methodology.col_rule")}</th>
                 <th className="px-3 py-2">{t("methodology.col_value")}</th>
                 <th className="px-3 py-2">{t("methodology.col_status")}</th>
+                <th className="px-3 py-2">{t("methodology.evidence_title")}</th>
                 <th className="px-3 py-2">{t("methodology.col_source")}</th>
                 <th className="px-3 py-2">{t("methodology.col_note")}</th>
               </tr>
@@ -120,6 +133,7 @@ export default function Methodology() {
                   <td className="px-3 py-2"><code className="text-xs">{p.path}</code></td>
                   <td className="whitespace-nowrap px-3 py-2 font-semibold">{fmtValue(p.value)} {p.unit}</td>
                   <td className="px-3 py-2"><StatusBadge status={p.status} /></td>
+                  <td className="px-3 py-2 text-xs">{t(`methodology.evidence.${p.evidence}`)}</td>
                   <td className="px-3 py-2">
                     {p.source.url.startsWith("http") ? <a href={p.source.url} target="_blank" rel="noreferrer">{p.source.name}</a> : <span>{p.source.name} <span className="text-amber-900">({p.source.url})</span></span>}
                   </td>
