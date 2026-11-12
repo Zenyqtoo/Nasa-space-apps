@@ -1,0 +1,80 @@
+# Эффект предшественника: на сколько процентов меняется урожайность культуры (crop)
+# в зависимости от того, что росло на поле годом раньше (predecessor).
+#
+# База сравнения (0 %) — посев по зерновому предшественнику, то есть «пшеница по пшенице»:
+# именно так получена большая часть областной статистики урожайности (до 87 % пшеницы в посевах).
+#
+# В полях predecessor и crop можно указать культуру (wheat, pea, ...) или группу:
+#   group:cereal | group:legume | group:oilseed | group:fallow | any
+# Выбирается самое конкретное подходящее правило: культура→культура, затем культура→группа,
+# группа→культура, группа→группа, any. Если правил нет — эффект 0 %.
+# same: true — правило действует, только когда культура идёт по самой себе.
+#
+# Эффект пара на урожай здесь не задаётся: он считается явно через запас влаги
+# (model.yaml -> water.fallow_stock_gain_pct), чтобы не учесть его дважды.
+
+effects:
+  - id: wheat_after_pea
+    predecessor: pea
+    crop: group:cereal
+    yield_effect_pct:
+      {value: 26, unit: "%", source: saskpulse_sequence, status: assumption,
+       note: "Значение из опытов в Саскачеване (регион-аналог: сухая степь, яровая пшеница). Перенос на Северный Казахстан — допущение. TODO: проверить по данным НПЦ им. Бараева"}
+
+  - id: wheat_after_lentil
+    predecessor: lentil
+    crop: group:cereal
+    yield_effect_pct:
+      {value: 18, unit: "%", source: saskpulse_sequence, status: assumption,
+       note: "Саскачеван, регион-аналог. Есть контрпример: в 18-летнем опыте Zentner et al. (1997) прибавки не было. TODO: проверить по данным НПЦ им. Бараева"}
+
+  - id: wheat_after_chickpea
+    predecessor: chickpea
+    crop: group:cereal
+    yield_effect_pct:
+      {value: 10, unit: "%", source: expert_guess, status: assumption,
+       note: "Данных по нуту не найдено. Принято меньше, чем после чечевицы: нут фиксирует меньше азота. TODO: проверить у агронома"}
+
+  - id: cereal_after_oilseed
+    predecessor: group:oilseed
+    crop: group:cereal
+    yield_effect_pct:
+      {value: 10, unit: "%", source: angus_2015, status: assumption,
+       note: "Обзор Angus et al. (2015): пшеница после масличных капустных и других «культур-перерывов» урожайнее, чем по пшенице (разрыв цикла болезней). Число — оценка. TODO: проверить у агронома"}
+
+  - id: cereal_after_sunflower
+    predecessor: sunflower
+    crop: group:cereal
+    yield_effect_pct:
+      {value: -10, unit: "%", source: expert_guess, status: assumption,
+       note: "Подсолнечник глубоко иссушает почву, следующей культуре достаётся меньше влаги. TODO: проверить у агронома"}
+
+  - id: legume_after_same_legume
+    predecessor: group:legume
+    crop: group:legume
+    same: true
+    yield_effect_pct:
+      {value: -15, unit: "%", source: poga_pea, status: assumption,
+       note: "Горох по гороху −15 % (Альберта). Распространено на чечевицу и нут — допущение"}
+
+  - id: legume_after_other_legume
+    predecessor: group:legume
+    crop: group:legume
+    yield_effect_pct:
+      {value: -10, unit: "%", source: expert_guess, status: assumption,
+       note: "Общие корневые гнили у гороха и чечевицы. TODO: проверить у агронома"}
+
+  - id: oilseed_after_same_oilseed
+    predecessor: group:oilseed
+    crop: group:oilseed
+    same: true
+    yield_effect_pct:
+      {value: -15, unit: "%", source: expert_guess, status: assumption,
+       note: "Накопление болезней при повторном посеве (льноутомление, кила рапса, заразиха подсолнечника). TODO: проверить у агронома"}
+
+  - id: oilseed_after_other_oilseed
+    predecessor: group:oilseed
+    crop: group:oilseed
+    yield_effect_pct:
+      {value: -10, unit: "%", source: expert_guess, status: assumption,
+       note: "Общие болезни рапса и подсолнечника (белая гниль). TODO: проверить у агронома"}

@@ -1,0 +1,211 @@
+# Культуры. У каждого значения: value, unit, source (id из sources.yaml), status, note.
+#   status: verified   — значение есть в указанном источнике и проверено при разработке;
+#   status: assumption — правдоподобное значение без проверенного первоисточника
+#                        для условий Северного Казахстана. В интерфейсе помечается «требует проверки».
+#
+# base_yield_t_ha — типичная урожайность «по зерновому предшественнику» для севера Казахстана;
+#   для области умножается на regions.yaml -> yield_index.
+# water_need_mm   — потребность культуры во влаге за сезон (ETm) для формулы FAO-33.
+# ky              — коэффициент реакции урожая на дефицит влаги (FAO): Ky > 1 — культура чувствительна,
+#                   Ky < 1 — переносит дефицит лучше. Заменяет «засухоустойчивость 0–1» из постановки:
+#                   у Ky есть опубликованные значения.
+# nitrogen_balance_kg_ha — баланс азота почвы за год без удобрений (фиксация минус вынос с зерном).
+# humus_balance_t_ha     — изменение запаса гумуса за год.
+
+crops:
+  wheat:
+    name: {ru: "Пшеница яровая", kk: "Жаздық бидай"}
+    short: {ru: "пшеница", kk: "бидай"}
+    group: cereal
+    nitrogen_fixing: false
+    base_yield_t_ha:
+      {value: 1.1, unit: "т/га", source: stat_gov_kz, status: assumption,
+       note: "Типичная урожайность, оценка. Опоры из новостей: по стране 9,8 ц/га в 2021 г., 13,6 в 2022 г., 16 в 2024 г. TODO: проверить у агронома и взять среднее за 5 лет по области на stat.gov.kz"}
+    price_kzt_t:
+      {value: 67500, unit: "тенге/т", source: task_statement, status: assumption,
+       note: "Из постановки задачи: 65–70 тыс. тенге/т, взята середина. Внимание: закупочная цена пшеницы 3 класса урожая 2026 г. — 92–115 тыс. тенге/т (inform.kz). Проверить и обновить"}
+    cost_kzt_ha:
+      {value: 60000, unit: "тенге/га", source: expert_guess, status: assumption,
+       note: "TODO: проверить у агронома. Ориентир для уточнения — нормативы затрат на гектар по областям (zakon.uchet.kz, V1500011418)"}
+    water_need_mm:
+      {value: 550, unit: "мм", source: fao_water_needs, status: assumption,
+       note: "FAO: пшеница/ячмень/овёс 450–650 мм за сезон (диапазон проверен). Взята середина; для короткого сезона Северного Казахстана может быть ниже. TODO: проверить у агронома"}
+    ky:
+      {value: 1.15, unit: "—", source: fao56, status: assumption,
+       note: "Яровая пшеница, FAO-56 табл. 24. Значение записано по памяти разработчика: сверить с таблицей"}
+    nitrogen_balance_kg_ha:
+      {value: -25, unit: "кг N/га в год", source: expert_guess, status: assumption,
+       note: "Вынос с зерном ~1,1 т/га при ~2,3 % азота, без удобрений. TODO: проверить у агронома"}
+    humus_balance_t_ha:
+      {value: -0.5, unit: "т/га в год", source: kazhydromet_humus, status: assumption,
+       note: "Нижняя граница диапазона 0,5–1 т/га для зерновых (солома остаётся в поле). Диапазон из журнала Казгидромета, выбор значения — допущение"}
+
+  lentil:
+    name: {ru: "Чечевица", kk: "Жасымық"}
+    short: {ru: "чечевица", kk: "жасымық"}
+    group: legume
+    nitrogen_fixing: true
+    base_yield_t_ha:
+      {value: 0.9, unit: "т/га", source: stat_gov_kz, status: assumption,
+       note: "Оценка. Косвенная опора: в 2025 г. около 1 млн т бобовых с ~781 тыс. га (≈12–13 ц/га, рекордный год). TODO: проверить у агронома"}
+    price_kzt_t:
+      {value: 127000, unit: "тенге/т", source: moa_prices_2026, status: verified,
+       note: "Чечевица красная, 127 тг/кг без НДС на 27.07.2026. Цена сильно колеблется (в декабре 2024 г. — 169)"}
+    cost_kzt_ha:
+      {value: 80000, unit: "тенге/га", source: expert_guess, status: assumption, note: "TODO: проверить у агронома"}
+    water_need_mm:
+      {value: 400, unit: "мм", source: expert_guess, status: assumption,
+       note: "В таблице FAO чечевицы нет. Принято близко к гороху (350–500 мм). TODO: проверить у агронома"}
+    ky:
+      {value: 1.0, unit: "—", source: expert_guess, status: assumption,
+       note: "В таблицах FAO значения нет. Принята пропорциональная реакция (Ky = 1). TODO: проверить у агронома"}
+    nitrogen_balance_kg_ha:
+      {value: 15, unit: "кг N/га в год", source: walley_2007, status: assumption,
+       note: "Walley et al. 2007: чечевица и горох чаще дают положительный баланс азота, но он сильно колеблется по годам. Само число — оценка. TODO: проверить у агронома"}
+    humus_balance_t_ha:
+      {value: -0.3, unit: "т/га в год", source: expert_guess, status: assumption,
+       note: "Принято меньше потерь, чем под зерновыми: богатые азотом пожнивные остатки. TODO: проверить у агронома"}
+
+  pea:
+    name: {ru: "Горох", kk: "Асбұршақ"}
+    short: {ru: "горох", kk: "асбұршақ"}
+    group: legume
+    nitrogen_fixing: true
+    base_yield_t_ha:
+      {value: 1.1, unit: "т/га", source: stat_gov_kz, status: assumption, note: "Оценка. TODO: проверить у агронома"}
+    price_kzt_t:
+      {value: 100000, unit: "тенге/т", source: moa_prices_2026, status: verified,
+       note: "Горох жёлтый, 100 тг/кг на 27.07.2026 (для северных регионов — премиальное качество)"}
+    cost_kzt_ha:
+      {value: 70000, unit: "тенге/га", source: expert_guess, status: assumption, note: "TODO: проверить у агронома"}
+    water_need_mm:
+      {value: 425, unit: "мм", source: fao_water_needs, status: assumption,
+       note: "FAO: горох 350–500 мм за сезон (диапазон проверен). Взята середина"}
+    ky:
+      {value: 1.15, unit: "—", source: fao56, status: assumption,
+       note: "Горох, FAO-56 табл. 24. Значение записано по памяти разработчика: сверить с таблицей"}
+    nitrogen_balance_kg_ha:
+      {value: 20, unit: "кг N/га в год", source: walley_2007, status: assumption,
+       note: "Walley et al. 2007: горох чаще даёт положительный баланс азота. Само число — оценка. TODO: проверить у агронома"}
+    humus_balance_t_ha:
+      {value: -0.3, unit: "т/га в год", source: expert_guess, status: assumption, note: "TODO: проверить у агронома"}
+
+  chickpea:
+    name: {ru: "Нут", kk: "Ноқат"}
+    short: {ru: "нут", kk: "ноқат"}
+    group: legume
+    nitrogen_fixing: true
+    base_yield_t_ha:
+      {value: 0.8, unit: "т/га", source: stat_gov_kz, status: assumption, note: "Оценка. TODO: проверить у агронома"}
+    price_kzt_t:
+      {value: 150000, unit: "тенге/т", source: expert_guess, status: assumption,
+       note: "В рекомендациях Минсельхоза от 27.07.2026 цены на нут не найдено. TODO: проверить"}
+    cost_kzt_ha:
+      {value: 75000, unit: "тенге/га", source: expert_guess, status: assumption, note: "TODO: проверить у агронома"}
+    water_need_mm:
+      {value: 400, unit: "мм", source: expert_guess, status: assumption,
+       note: "В таблице FAO нута нет. TODO: проверить у агронома"}
+    ky:
+      {value: 1.0, unit: "—", source: expert_guess, status: assumption,
+       note: "В таблицах FAO значения нет. Принята пропорциональная реакция (Ky = 1). TODO: проверить у агронома"}
+    nitrogen_balance_kg_ha:
+      {value: 5, unit: "кг N/га в год", source: walley_2007, status: assumption,
+       note: "Walley et al. 2007 относит к культурам с высокой фиксацией горох, чечевицу и кормовые бобы; для нута баланс принят около нуля. TODO: проверить у агронома"}
+    humus_balance_t_ha:
+      {value: -0.3, unit: "т/га в год", source: expert_guess, status: assumption, note: "TODO: проверить у агронома"}
+
+  flax:
+    name: {ru: "Лён масличный", kk: "Майлы зығыр"}
+    short: {ru: "лён", kk: "зығыр"}
+    group: oilseed
+    nitrogen_fixing: false
+    base_yield_t_ha:
+      {value: 0.8, unit: "т/га", source: stat_gov_kz, status: assumption, note: "Оценка. TODO: проверить у агронома"}
+    price_kzt_t:
+      {value: 200000, unit: "тенге/т", source: task_statement, status: assumption,
+       note: "Из постановки задачи: «от 200 тыс. тенге/т». Сверка: Минсельхоз 27.07.2026 — 211 тг/кг"}
+    cost_kzt_ha:
+      {value: 75000, unit: "тенге/га", source: expert_guess, status: assumption, note: "TODO: проверить у агронома"}
+    water_need_mm:
+      {value: 450, unit: "мм", source: expert_guess, status: assumption,
+       note: "В таблице FAO масличного льна нет. TODO: проверить у агронома"}
+    ky:
+      {value: 1.0, unit: "—", source: expert_guess, status: assumption,
+       note: "В таблицах FAO значения нет. Принята пропорциональная реакция (Ky = 1). TODO: проверить у агронома"}
+    nitrogen_balance_kg_ha:
+      {value: -25, unit: "кг N/га в год", source: expert_guess, status: assumption, note: "Вынос с семенами, без удобрений. TODO: проверить у агронома"}
+    humus_balance_t_ha:
+      {value: -0.5, unit: "т/га в год", source: kazhydromet_humus, status: assumption,
+       note: "Принято как для зерновых (культура сплошного сева). TODO: проверить у агронома"}
+
+  rapeseed:
+    name: {ru: "Рапс яровой", kk: "Жаздық рапс"}
+    short: {ru: "рапс", kk: "рапс"}
+    group: oilseed
+    nitrogen_fixing: false
+    base_yield_t_ha:
+      {value: 0.9, unit: "т/га", source: stat_gov_kz, status: assumption, note: "Оценка. TODO: проверить у агронома"}
+    price_kzt_t:
+      {value: 200000, unit: "тенге/т", source: task_statement, status: assumption,
+       note: "Из постановки задачи: «от 200 тыс. тенге/т». Сверка: Минсельхоз 27.07.2026 — 225 тг/кг"}
+    cost_kzt_ha:
+      {value: 95000, unit: "тенге/га", source: expert_guess, status: assumption,
+       note: "Принято выше пшеницы: рапс требователен к азоту и защите. TODO: проверить у агронома"}
+    water_need_mm:
+      {value: 500, unit: "мм", source: expert_guess, status: assumption,
+       note: "В таблице FAO ярового рапса нет. TODO: проверить у агронома"}
+    ky:
+      {value: 1.0, unit: "—", source: expert_guess, status: assumption,
+       note: "В таблицах FAO значения нет. Принята пропорциональная реакция (Ky = 1). TODO: проверить у агронома"}
+    nitrogen_balance_kg_ha:
+      {value: -30, unit: "кг N/га в год", source: expert_guess, status: assumption, note: "Вынос с семенами, без удобрений. TODO: проверить у агронома"}
+    humus_balance_t_ha:
+      {value: -0.5, unit: "т/га в год", source: kazhydromet_humus, status: assumption,
+       note: "Принято как для зерновых (культура сплошного сева). TODO: проверить у агронома"}
+
+  sunflower:
+    name: {ru: "Подсолнечник", kk: "Күнбағыс"}
+    short: {ru: "подсолнечник", kk: "күнбағыс"}
+    group: oilseed
+    nitrogen_fixing: false
+    base_yield_t_ha:
+      {value: 0.9, unit: "т/га", source: stat_gov_kz, status: assumption, note: "Оценка. TODO: проверить у агронома"}
+    price_kzt_t:
+      {value: 221000, unit: "тенге/т", source: moa_prices_2026, status: verified,
+       note: "221 тг/кг на 27.07.2026, диапазон рекомендаций 180–240"}
+    cost_kzt_ha:
+      {value: 85000, unit: "тенге/га", source: expert_guess, status: assumption, note: "TODO: проверить у агронома"}
+    water_need_mm:
+      {value: 800, unit: "мм", source: fao_water_needs, status: assumption,
+       note: "FAO: подсолнечник 600–1000 мм за сезон. Взята середина"}
+    ky:
+      {value: 0.95, unit: "—", source: fao56, status: assumption,
+       note: "Подсолнечник, FAO-56 табл. 24. Значение записано по памяти разработчика: сверить с таблицей"}
+    nitrogen_balance_kg_ha:
+      {value: -25, unit: "кг N/га в год", source: expert_guess, status: assumption, note: "Вынос с семенами, без удобрений. TODO: проверить у агронома"}
+    humus_balance_t_ha:
+      {value: -1.0, unit: "т/га в год", source: kazhydromet_humus, status: assumption,
+       note: "Пропашная культура: по журналу Казгидромета потери в 2–3 раза выше, чем под зерновыми. Взято в 2 раза больше пшеницы"}
+
+  fallow:
+    name: {ru: "Пар чистый", kk: "Таза пар"}
+    short: {ru: "пар", kk: "пар"}
+    group: fallow
+    nitrogen_fixing: false
+    base_yield_t_ha:
+      {value: 0, unit: "т/га", source: model_design, status: verified, note: "Пар урожая не даёт"}
+    price_kzt_t:
+      {value: 0, unit: "тенге/т", source: model_design, status: verified, note: "Пар урожая не даёт"}
+    cost_kzt_ha:
+      {value: 15000, unit: "тенге/га", source: expert_guess, status: assumption,
+       note: "Обработки пара (механические или гербицидные). TODO: проверить у агронома"}
+    water_need_mm:
+      {value: 0, unit: "мм", source: model_design, status: verified, note: "На пару культура воду не расходует"}
+    ky:
+      {value: 0, unit: "—", source: model_design, status: verified, note: "Не применяется"}
+    nitrogen_balance_kg_ha:
+      {value: 0, unit: "кг N/га в год", source: expert_guess, status: assumption,
+       note: "Выноса с урожаем нет; потери нитратов из парового поля не учтены. TODO: проверить у агронома"}
+    humus_balance_t_ha:
+      {value: -1.5, unit: "т/га в год", source: expert_guess, status: assumption,
+       note: "В паровом поле гумус минерализуется, а растительных остатков нет. Принято в 3 раза больше потерь под зерновыми. TODO: проверить у агронома"}
