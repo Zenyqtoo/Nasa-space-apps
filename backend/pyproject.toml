@@ -1,0 +1,49 @@
+[project]
+name = "agro-sevooborot-backend"
+version = "0.1.0"
+description = "Агро-Севооборот: инструмент поддержки решений по севообороту для Северного Казахстана"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "httpx>=0.27",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "pyyaml>=6.0",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "shapely>=2.0",
+    "scipy>=1.13",
+    "reportlab>=4.2",
+    "matplotlib>=3.9",
+    # Сертификат modis.ornl.gov выпущен в цепочке emSign Root CA - G1;
+    # более старые наборы корневых сертификатов certifi его не содержат.
+    "certifi>=2026.10.23",
+]
+
+[project.optional-dependencies]
+# Авторизация NASA Earthdata по логину/паролю (SMAP, GPM). С токеном EARTHDATA_TOKEN не требуется.
+earthdata = ["earthaccess>=0.11"]
+dev = ["pytest>=8", "pypdf>=4", "ruff>=0.5"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+app = ["rules/*.yaml", "locales/*.yaml", "assets/fonts/*", "data_sources/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501", "B023", "B008"]
