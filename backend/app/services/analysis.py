@@ -18,6 +18,9 @@ from ..model.rules import Rules, get_rules
 POWER_START = date(1981, 1, 1)
 MODIS_START = date(2000, 1, 1)
 SMAP_START = date(2015, 1, 1)
+#: выше этого содержания гумуса в слое 0–30 см (для пашни Северного Казахстана) значение SoilGrids
+#: помечается как подозрительное — нужна проверка агрохимическим анализом
+SUSPICIOUS_HUMUS_PCT = 8.0
 
 
 class AnalysisError(RuntimeError):
@@ -191,6 +194,10 @@ async def analyze(
         warnings.append(DataWarning("resolution_smap", "smap"))
     if soil is not None:
         warnings.append(DataWarning("soil_is_model_map", "soilgrids"))
+        humus = soil["topsoil"].get("humus_pct")
+        if humus is not None and humus > SUSPICIOUS_HUMUS_PCT:
+            # SoilGrids в верхних сантиметрах степных почв нередко завышает органический углерод
+            warnings.append(DataWarning("soil_humus_suspicious", "soilgrids", {"humus_pct": humus}))
     else:
         warnings.append(DataWarning("soil_missing_awc", "soilgrids"))
 
