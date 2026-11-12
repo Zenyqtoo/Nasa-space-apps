@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +14,15 @@ from .model.rules import get_rules
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    get_rules()  # правила проверяются при запуске: ошибка в YAML не даст серверу стартовать
+    get_settings().cache_dir.mkdir(parents=True, exist_ok=True)
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Агро-Севооборот API",
     description="Инструмент поддержки решений по севообороту для Северного Казахстана. "
     "Окончательное решение принимает фермер.",
@@ -27,9 +37,3 @@ app.add_middleware(
 )
 app.include_router(router)
 
-
-@app.on_event("startup")
-async def _startup() -> None:
-    get_rules()  # правила проверяются при запуске: ошибка в YAML не даст серверу стартовать
-    settings = get_settings()
-    settings.cache_dir.mkdir(parents=True, exist_ok=True)
