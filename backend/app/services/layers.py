@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from datetime import date
 
+import numpy as np
+
 from ..analytics import climate
 from ..data_sources import modis, smap
 from ..data_sources.base import demo_field_record
@@ -15,7 +17,7 @@ from ..geometry import Field, GeometryError, parse_field
 from ..model.rules import get_rules
 from .analysis import MODIS_START, POWER_START, SMAP_START
 
-KINDS = ("ndvi", "soil_moisture", "precip")
+KINDS = ("ndvi", "ndvi_anomaly", "soil_moisture", "precip")
 
 # сетка метеопараметров MERRA-2, на которой отдаёт данные NASA POWER
 POWER_DLAT, POWER_DLON = 0.5, 0.625
@@ -210,12 +212,58 @@ async def precip_layer(field: Field, when: str | None) -> dict:
     }
 
 
+async def ndvi_anomaly_layer(field: Field, when: str | None) -> dict:
+    """Отклонение NDVI выбранного композита от медианы того же композита (тот же день года)
+    за все сезоны, для которых сохранены пиксельные растры (до 6 последних)."""
+    base = await ndvi_layer(field, when)
+    res = SOURCES["modis"].read_cached(field, MODIS_START, date.today())
+    rasters = res.data["rasters"]
+    chosen = base["meta"]["date"]
+    doy = date.fromisoformat(chosen).timetuple().tm_yday
+    peers = [d for d in rasters if d != chosen and abs(date.fromisoformat(d).timetuple().tm_yday - doy) <= 8]
+    scale = res.data.get("ndvi_scale", 0.0001)
+    feats = []
+    for i, f in enumerate(base["features"]):
+        v = rasters[chosen][i]
+        others = [rasters[d][i] for d in peers if rasters[d][i] is not None]
+        anomaly = None
+        if v is not None and len(others) >= 2:
+            anomaly = round((v - float(np.median(others))) * scale, 3)
+        feats.append({**f, "properties": {**f["properties"], "value": anomaly}})
+    meta = {**base["meta"], "kind": "ndvi_anomaly", "unit": "ΔNDVI", "legend": {"min": -0.2, "max": 0.2},
+            "reference_dates": sorted(peers), "diverging": True}
+    return {"type": "FeatureCollection", "features": feats, "meta": meta}
+
+
+def field_summary(layer: dict) -> dict:
+    """Среднее значение слоя по ячейкам внутри поля и честная оговорка о разрешении."""
+    inside = [f["properties"]["value"] for f in layer["features"] if f["properties"].get("in_field")]
+    vals = [v for v in inside if v is not None]
+    res = layer["meta"].get("resolution_m") or 0
+    return {
+        "field_mean": round(sum(vals) / len(vals), 3) if vals else None,
+        "cells_in_field": len(inside),
+        "cells_with_data": len(vals),
+        "coarser_than_field": res >= 1000,
+    }
+
+
+async def build_layer_for_field(kind: str, field: Field, when: str | None) -> dict:
+    if kind == "ndvi":
+        layer = await ndvi_layer(field, when)
+    elif kind == "ndvi_anomaly":
+        layer = await ndvi_anomaly_layer(field, when)
+    elif kind == "soil_moisture":
+        layer = await soil_moisture_layer(field, when)
+    elif kind == "precip":
+        layer = await precip_layer(field, when)
+    else:
+        raise LayerError(f"unknown layer '{kind}'")
+    layer["meta"]["summary"] = field_summary(layer)
+    return layer
+
+
 async def build_layer(kind: str, bbox: tuple[float, float, float, float], when: str | None) -> dict:
     field = field_for_bbox(bbox)
-    if kind == "ndvi":
-        return await ndvi_layer(field, when)
-    if kind == "soil_moisture":
-        return await soil_moisture_layer(field, when)
-    if kind == "precip":
-        return await precip_layer(field, when)
-    raise LayerError(f"unknown layer '{kind}'")
+    return await build_layer_for_field(kind, field, when)
+

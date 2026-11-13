@@ -7,11 +7,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from .. import auth, db
 from ..config import get_settings
-from ..geometry import GeometryError
+from ..geometry import GeometryError, parse_field
 from ..model.rules import RulesError
 from ..schemas import AnalysisIn, FieldIn, LoginIn, ProfileIn, RegisterIn
 from ..services import fields as fs
-from ..services.analysis import AnalysisError
+from ..services import layers as layer_svc
+from ..services import monitoring as mon
+from ..services.analysis import AnalysisError, analyze
 
 router = APIRouter(prefix="/api")
 
@@ -19,12 +21,12 @@ router = APIRouter(prefix="/api")
 def _err(exc: Exception) -> HTTPException:
     if isinstance(exc, fs.NotFound):
         return HTTPException(404, detail=f"{exc}_not_found")
-    if isinstance(exc, AnalysisError):
+    if isinstance(exc, AnalysisError | layer_svc.LayerError):
         return HTTPException(503, detail=str(exc))
     return HTTPException(422, detail=str(exc))
 
 
-HANDLED = (fs.NotFound, GeometryError, RulesError, ValueError, AnalysisError)
+HANDLED = (fs.NotFound, GeometryError, RulesError, ValueError, AnalysisError, layer_svc.LayerError)
 
 
 # ---------------------------------------------------------------- auth
@@ -178,3 +180,65 @@ async def analyses_delete(analysis_id: int, user: dict = Depends(auth.authed)) -
     except HANDLED as exc:
         raise _err(exc) from exc
     return Response(status_code=204)
+
+
+# ---------------------------------------------------------------- данные поля: обзор, мониторинг, история, риски
+@router.get("/fields/{field_id}/overview")
+async def field_overview(field_id: int, user: dict = Depends(auth.current_user)) -> dict:
+    """Анализ данных поля (как /api/field/analyze) для сохранённого поля; запускает фоновые загрузки."""
+    try:
+        f = fs.get_field(user["id"], field_id)
+        return (await analyze(f["geometry"], f["region"], start_jobs=True)).response
+    except HANDLED as exc:
+        raise _err(exc) from exc
+
+
+@router.get("/fields/{field_id}/monitoring")
+async def field_monitoring(field_id: int, start: str | None = None, end: str | None = None,
+                           user: dict = Depends(auth.current_user)) -> dict:
+    for v in (start, end):
+        if v is not None and not (len(v) == 7 and v[4] == "-" and v[:4].isdigit() and v[5:].isdigit()):
+            raise HTTPException(422, detail="start/end must be YYYY-MM")
+    try:
+        f = fs.get_field(user["id"], field_id)
+        return await mon.monitoring(f["geometry"], f["region"], start, end)
+    except HANDLED as exc:
+        raise _err(exc) from exc
+
+
+@router.get("/fields/{field_id}/seasons")
+async def field_seasons(field_id: int, user: dict = Depends(auth.current_user)) -> dict:
+    try:
+        f = fs.get_field(user["id"], field_id)
+        return await mon.seasons(f["geometry"], f["region"])
+    except HANDLED as exc:
+        raise _err(exc) from exc
+
+
+@router.get("/fields/{field_id}/risk")
+async def field_risk(field_id: int, user: dict = Depends(auth.current_user)) -> dict:
+    try:
+        f = fs.get_field(user["id"], field_id)
+        return await mon.risk(f["geometry"], f["region"])
+    except HANDLED as exc:
+        raise _err(exc) from exc
+
+
+@router.get("/fields/{field_id}/suitability")
+async def field_suitability(field_id: int, user: dict = Depends(auth.current_user)) -> dict:
+    try:
+        f = fs.get_field(user["id"], field_id)
+        return await mon.suitability(f["geometry"], f["region"], f["history"])
+    except HANDLED as exc:
+        raise _err(exc) from exc
+
+
+@router.get("/fields/{field_id}/layers/{kind}")
+async def field_layer(field_id: int, kind: str, date: str | None = None, user: dict = Depends(auth.current_user)) -> dict:
+    if kind not in layer_svc.KINDS:
+        raise HTTPException(404, detail=f"unknown layer '{kind}'")
+    try:
+        f = fs.get_field(user["id"], field_id)
+        return await layer_svc.build_layer_for_field(kind, parse_field(f["geometry"]), date)
+    except HANDLED as exc:
+        raise _err(exc) from exc
