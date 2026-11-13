@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     # Необязательный путь к набору корневых сертификатов (корпоративный прокси).
     ca_bundle: str | None = None
 
+    # Учётные записи и хранилище
+    db_path: Path | None = None  # по умолчанию data/app.db
+    session_days: int = 30
+    cookie_secure: bool = False  # True за HTTPS
+    allow_registration: bool = True
+    demo_ttl_days: int = 3
+
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080"
 
     http_timeout_s: float = 60.0

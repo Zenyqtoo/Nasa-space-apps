@@ -289,6 +289,52 @@ def _normalize(value: float, lo: float, hi: float, direction: int, neutral: floa
     return round(1 + 4 * share, 1)
 
 
+def normalize_weights(weights: dict[str, float]) -> dict[str, float]:
+    if set(weights) != set(SCORE_KEYS):
+        raise ValueError(f"weights must have keys {list(SCORE_KEYS)}")
+    if any(w < 0 for w in weights.values()) or sum(weights.values()) <= 0:
+        raise ValueError("weights must be non-negative and not all zero")
+    total = sum(weights.values())
+    return {k: round(weights[k] / total, 4) for k in SCORE_KEYS}
+
+
+#: Уровни уверенности по доле параметров с опорой на источник или определение (конструкция модели, docs/MODEL_AUDIT.md)
+CONFIDENCE_LEVELS = ((0.6, "high"), (0.3, "medium"), (0.0, "low"))
+
+
+def parameter_confidence(params: list[dict]) -> dict:
+    """Доля использованных параметров класса literature/definition — простая прозрачная мера обоснованности."""
+    supported = sum(1 for p in params if p.get("evidence") in ("literature", "definition"))
+    by_class: dict[str, int] = {}
+    for p in params:
+        by_class[p.get("evidence", "")] = by_class.get(p.get("evidence", ""), 0) + 1
+    share = supported / len(params) if params else 0.0
+    level = next(lvl for cut, lvl in CONFIDENCE_LEVELS if share >= cut)
+    return {"params_total": len(params), "params_supported": supported, "share": round(share, 3),
+            "level": level, "by_evidence": by_class}
+
+
+def economics(result: dict) -> dict:
+    """Выручка, затраты, валовая маржа и чувствительность маржи к цене (все цены ±20 %)."""
+    years = result["years"]
+    revenue = sum(y["revenue_kzt_ha"] for y in years)
+    cost = sum(y["cost_kzt_ha"] for y in years)
+    margin = revenue - cost
+    return {
+        "revenue_kzt_ha": round(revenue),
+        "cost_kzt_ha": round(cost),
+        "gross_margin_kzt_ha": round(margin),
+        "margin_price_minus20_kzt_ha": round(revenue * 0.8 - cost),
+        "margin_price_plus20_kzt_ha": round(revenue * 1.2 - cost),
+        "breakeven_price_factor": round(cost / revenue, 3) if revenue > 0 else None,
+        "per_year": [
+            {"year": y["year"], "crop": y["crop"], "revenue_kzt_ha": y["revenue_kzt_ha"], "cost_kzt_ha": y["cost_kzt_ha"],
+             "gross_margin_kzt_ha": y["income_kzt_ha"]}
+            for y in years
+        ],
+    }
+
+
 def compare(
     rules: Rules,
     cond: FieldConditions,
@@ -297,8 +343,13 @@ def compare(
     horizon: int,
     priority: str,
     start_year: int | None = None,
+    weights: dict[str, float] | None = None,
 ) -> dict:
-    """Сравнение вариантов: прогноз, оценки 1–5, взвешенный балл, стресс-тест."""
+    """Сравнение вариантов: прогноз, оценки 1–5, взвешенный балл, стресс-тест.
+
+    ``weights`` — веса оценок, заданные фермером (почва, вода, доход, риск); нормируются к сумме 1.
+    Если не заданы, берутся веса приоритета из model.yaml.
+    """
     model = rules.model
     h_cfg = model["horizon"]
     if not (int(h_cfg["min_years"]) <= horizon <= int(h_cfg["max_years"])):
@@ -328,7 +379,15 @@ def compare(
     neutral = float(scoring.get("neutral_score", 3.0))
 
     weights_param: Param = model["priorities"][priority]["weights"]
-    weights = weights_param.value
+    if weights:
+        weights = normalize_weights(weights)
+        weights_ref = {
+            "path": "user.weights", "value": weights, "unit": "доля", "status": "assumption",
+            "evidence": "preliminary", "source": "Веса, заданные пользователем", "url": "",
+        }
+    else:
+        weights = weights_param.value
+        weights_ref = weights_param.ref()
     for r in results:
         used = r.pop("_used")
         scores = {}
@@ -354,6 +413,8 @@ def compare(
         all_params = [p.ref() for _, p in sorted(used.items())]
         r["params_used"] = len(all_params)
         r["assumptions_used"] = sum(1 for p in all_params if p["status"] == "assumption")
+        r["confidence"] = parameter_confidence(all_params)
+        r["economics"] = economics(r)
 
     best = max(results, key=lambda r: r["weighted_score"])
     for r in results:
@@ -363,7 +424,8 @@ def compare(
         "start_year": start_year,
         "horizon_years": horizon,
         "priority": priority,
-        "weights": {**weights, "_rule": weights_param.ref()},
+        "weights": {**weights, "_rule": weights_ref},
+        "weights_custom": bool(weights) and weights_ref["path"] == "user.weights",
         "conditions": cond.as_dict(),
         "reference_water_mm": round(cond.p_season_ref + cond.stock_ref, 1),
         "normal_water_mm": round(cond.p_season_normal + cond.stock_normal, 1),

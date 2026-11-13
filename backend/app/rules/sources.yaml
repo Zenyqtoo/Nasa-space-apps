@@ -8,7 +8,7 @@ task_statement:
 
 model_design:
   name: "Параметр конструкции модели (выбор разработчиков, не агрономический факт)"
-  url: "https://github.com/Zenyqtoo/agro-sevooborot/blob/main/docs/MODEL_AUDIT.md"
+  url: "https://github.com/Zenyqtoo/Nasa-space-apps/blob/main/docs/MODEL_AUDIT.md"
 
 expert_guess:
   name: "Экспертная оценка разработчиков без первоисточника"

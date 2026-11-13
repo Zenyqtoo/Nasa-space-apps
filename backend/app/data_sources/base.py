@@ -24,6 +24,7 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from dataclasses import field as dc_field
 from datetime import UTC, date, datetime
+from pathlib import Path
 from typing import Any, Literal
 
 import httpx
@@ -90,27 +91,54 @@ def http_client(timeout: float | None = None) -> httpx.AsyncClient:
     )
 
 
-def demo_field_record() -> dict | None:
-    path = get_settings().demo_dir / "field.json"
-    if not path.exists():
-        return None
+def demo_dirs() -> list[Path]:
+    """Каталоги демо-полей: основное поле в data/demo и дополнительные в data/demo/fields/<id>."""
+    base = get_settings().demo_dir
+    dirs = [base] if (base / "field.json").exists() else []
+    extra = base / "fields"
+    if extra.exists():
+        dirs += sorted(d for d in extra.iterdir() if (d / "field.json").exists())
+    return dirs
+
+
+def _read_record(directory: Path) -> dict | None:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return json.loads((directory / "field.json").read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
 
 
-def is_demo_field(field: Field) -> bool:
-    rec = demo_field_record()
-    if not rec:
-        return False
+def demo_field_record() -> dict | None:
+    """Основное демо-поле (совместимость с прежним API /api/demo)."""
+    return _read_record(get_settings().demo_dir) if (get_settings().demo_dir / "field.json").exists() else None
+
+
+def demo_field_records() -> list[dict]:
+    out = []
+    for d in demo_dirs():
+        rec = _read_record(d)
+        if rec:
+            out.append({**rec, "_dir": str(d)})
+    return out
+
+
+def demo_dir_for(field: Field) -> Path | None:
     from ..geometry import parse_field
 
-    try:
-        demo = parse_field(rec["geometry"])
-    except Exception:  # noqa: BLE001
-        return False
-    return demo.canonical() == field.canonical()
+    for d in demo_dirs():
+        rec = _read_record(d)
+        if not rec:
+            continue
+        try:
+            if parse_field(rec["geometry"]).canonical() == field.canonical():
+                return d
+        except Exception:  # noqa: BLE001
+            continue
+    return None
+
+
+def is_demo_field(field: Field) -> bool:
+    return demo_dir_for(field) is not None
 
 
 #: источник -> (время последнего сбоя, текст ошибки). Пока не истекла пауза,
@@ -144,8 +172,8 @@ class DataSource(ABC):
     def cache_key(self, field: Field, start: date, end: date) -> str:
         return cache.make_key(self.id, v=self.schema_version, **self.cache_parts(field, start, end))
 
-    def read_demo(self) -> dict | None:
-        path = get_settings().demo_dir / f"{self.id}.json"
+    def read_demo(self, directory: Path | None = None) -> dict | None:
+        path = (directory or get_settings().demo_dir) / f"{self.id}.json"
         if not path.exists():
             return None
         try:
@@ -155,8 +183,9 @@ class DataSource(ABC):
 
     def read_cached(self, field: Field, start: date, end: date) -> SourceResult | None:
         """Только демо/кэш, без сети."""
-        if is_demo_field(field):
-            demo = self.read_demo()
+        demo_dir = demo_dir_for(field)
+        if demo_dir is not None:
+            demo = self.read_demo(demo_dir)
             if demo is not None:
                 return SourceResult(self.id, "demo", demo, demo.get("cached_at"))
         cached = cache.read(self.id, self.cache_key(field, start, end))

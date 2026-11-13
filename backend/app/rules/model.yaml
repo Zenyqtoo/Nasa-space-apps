@@ -103,6 +103,17 @@ priorities:
       {value: {income: 0.20, risk: 0.15, soil: 0.50, water: 0.15}, unit: "доля", source: model_design, status: assumption, evidence: preliminary,
        note: "Веса оценок для приоритета «восстановление почвы». Настройка, не агрономия"}
 
+  minimize_risk:
+    name: {ru: "Минимальный риск засухи", kk: "Құрғақшылық тәуекелі ең аз", en: "Minimise drought risk"}
+    weights:
+      {value: {income: 0.20, risk: 0.45, soil: 0.15, water: 0.20}, unit: "доля", source: model_design, status: assumption, evidence: preliminary,
+       note: "Веса оценок для приоритета «минимальный риск засухи». Настройка, не агрономия"}
+  balanced:
+    name: {ru: "Баланс экономики и экологии", kk: "Экономика мен экология теңгерімі", en: "Balance economics and environment"}
+    weights:
+      {value: {income: 0.25, risk: 0.25, soil: 0.25, water: 0.25}, unit: "доля", source: model_design, status: assumption, evidence: preliminary,
+       note: "Равные веса четырёх оценок. Настройка, не агрономия"}
+
 # ---------------------------------------------------------------- стресс-тест
 stress_test:
   default_year:

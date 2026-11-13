@@ -17,6 +17,8 @@ def validate_request(req: CompareRequest, rules: Rules) -> list[dict]:
         rules.crop(crop)
     if req.priority not in rules.model["priorities"]:
         raise ValueError(f"unknown priority '{req.priority}'")
+    if req.weights is not None:
+        rotation.normalize_weights(req.weights)
     variants = [v.model_dump() for v in req.variants] if req.variants else default_variants(rules)
     ids = [v["id"] for v in variants]
     if len(set(ids)) != len(ids):
@@ -30,7 +32,7 @@ def validate_request(req: CompareRequest, rules: Rules) -> list[dict]:
 async def run_compare(req: CompareRequest, *, start_jobs: bool = False) -> tuple[dict, Analysis]:
     rules = get_rules()
     variants = validate_request(req, rules)
-    analysis = await analyze(req.geometry, req.region, start_jobs=start_jobs, rules=rules)
+    analysis = await analyze(req.geometry, req.region, start_jobs=start_jobs, rules=rules, stress_year=req.stress_year)
     result = rotation.compare(
         rules,
         analysis.conditions,
@@ -39,6 +41,7 @@ async def run_compare(req: CompareRequest, *, start_jobs: bool = False) -> tuple
         req.horizon_years,
         req.priority,
         req.start_year,
+        weights=req.weights,
     )
     explain.attach_explanations(rules, result)
     result["priority_name"] = rules.model["priorities"][req.priority]["name"]
@@ -47,6 +50,7 @@ async def run_compare(req: CompareRequest, *, start_jobs: bool = False) -> tuple
     result["drought"] = {
         "stress_year": analysis.response["drought"]["stress_year"],
         "stress_year_reason": analysis.response["drought"]["stress_year_reason"],
+        "dry_years": analysis.response["drought"]["dry_years"],
         "share": analysis.response["drought"]["share"],
         "every_nth": analysis.response["drought"]["every_nth"],
     }

@@ -78,6 +78,7 @@ async def analyze(
     *,
     start_jobs: bool = True,
     rules: Rules | None = None,
+    stress_year: int | None = None,
     today: date | None = None,
 ) -> Analysis:
     rules = rules or get_rules()
@@ -123,7 +124,11 @@ async def analyze(
     # ---- засушливый год для стресс-теста -----------------------------------
     preferred = int(model["stress_test"]["default_year"].value)
     dry_set = {r["year"] for r in drought["years"] if r["is_dry"]}
-    if preferred in dry_set and preferred in stock_by_year:
+    if stress_year is not None:
+        if stress_year not in dry_set:
+            raise ValueError(f"stress_year {stress_year} is not a dry year for this field: {sorted(dry_set)}")
+        dry_year, dry_reason = stress_year, "user_selected"
+    elif preferred in dry_set and preferred in stock_by_year:
         dry_year, dry_reason = preferred, "default_year"
     else:
         dry_year, dry_reason = drought["driest_year"], "driest_year"

@@ -30,7 +30,7 @@ def test_required_crops_regions_and_variants(rules):
         ["wheat", "pea", "rapeseed", "fallow"],
         ["wheat", "chickpea", "sunflower", "wheat"],
     ]
-    assert set(rules.model["priorities"]) == {"max_income", "save_moisture", "restore_soil"}
+    assert set(rules.model["priorities"]) == {"max_income", "save_moisture", "restore_soil", "minimize_risk", "balanced"}
     for crop in rules.crops.values():
         assert crop["name"]["ru"] and crop["name"]["kk"]
     for cid in ("lentil", "pea", "chickpea"):

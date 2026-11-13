@@ -21,3 +21,7 @@ frontend/dist/
 # прочее
 .DS_Store
 *.log
+
+# база учётных записей и полей
+data/app.db
+data/app.db-*

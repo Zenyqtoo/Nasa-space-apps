@@ -82,7 +82,11 @@ def test_priority_changes_weights(rules, cond):
     for p, res in results.items():
         w = rules.model["priorities"][p]["weights"].value
         assert abs(sum(w.values()) - 1) < 1e-9
-        assert max(w, key=w.get) == {"max_income": "income", "save_moisture": "water", "restore_soil": "soil"}[p]
+        top = {"max_income": "income", "save_moisture": "water", "restore_soil": "soil", "minimize_risk": "risk"}.get(p)
+        if top:
+            assert max(w, key=w.get) == top
+        else:  # balanced: равные веса
+            assert len(set(w.values())) == 1
         for v in res["variants"]:
             expected = sum(w[k] * v["scores"][k]["score"] for k in rotation.SCORE_KEYS)
             assert v["weighted_score"] == pytest.approx(expected, abs=0.01)
@@ -91,7 +95,18 @@ def test_priority_changes_weights(rules, cond):
     for vid in a:
         assert {k: s["score"] for k, s in a[vid]["scores"].items()} == {k: s["score"] for k, s in b[vid]["scores"].items()}
     ranks = {p: [v["weighted_score"] for v in r["variants"]] for p, r in results.items()}
-    assert ranks["max_income"] != ranks["save_moisture"] != ranks["restore_soil"]
+    assert len({tuple(x) for x in ranks.values()}) == len(ranks)
+
+
+def test_custom_weights_override_preset_and_are_normalized(rules, cond):
+    res = rotation.compare(rules, cond, defaults(rules), WHEAT_HISTORY, 4, "max_income", start_year=2027,
+                           weights={"soil": 3, "water": 1, "income": 0, "risk": 0})
+    assert res["weights"]["soil"] == 0.75 and res["weights"]["water"] == 0.25 and res["weights_custom"]
+    for v in res["variants"]:
+        assert v["weighted_score"] == pytest.approx(0.75 * v["scores"]["soil"]["score"] + 0.25 * v["scores"]["water"]["score"], abs=0.01)
+    for bad in ({"soil": 1}, {"soil": 0, "water": 0, "income": 0, "risk": 0}, {"soil": -1, "water": 2, "income": 0, "risk": 0}):
+        with pytest.raises(ValueError):
+            rotation.normalize_weights(bad)
 
 
 # ---- остальная логика ------------------------------------------------------------
