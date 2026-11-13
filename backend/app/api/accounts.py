@@ -242,3 +242,53 @@ async def field_layer(field_id: int, kind: str, date: str | None = None, user: d
         return await layer_svc.build_layer_for_field(kind, parse_field(f["geometry"]), date)
     except HANDLED as exc:
         raise _err(exc) from exc
+
+
+# ---------------------------------------------------------------- экспорт PDF и XLSX
+async def _report_data(user: dict, field_id: int, analysis_id: int | None):
+    from ..services.report_data import gather
+
+    f = fs.get_field(user["id"], field_id)
+    a_in = AnalysisIn()
+    if analysis_id is not None:
+        saved = fs.get_analysis(user["id"], analysis_id)
+        if saved["field_id"] != field_id:
+            raise fs.NotFound("analysis")
+        a_in = AnalysisIn(**saved["request"])
+    info = {"name": f["name"], "farm_name": user.get("farm_name", ""), "notes": f["notes"], "soil": f["soil"],
+            "history_is_scenario": f["history_is_scenario"]}
+    return await gather(fs.compare_request(f, a_in), info), f
+
+
+@router.get("/fields/{field_id}/report.pdf")
+async def field_report_pdf(field_id: int, lang: str = "ru", analysis_id: int | None = None, variant: str | None = None,
+                           user: dict = Depends(auth.current_user)) -> Response:
+    from ..report.pdf import build_report
+    from .routes import report_filename
+
+    if lang not in ("ru", "kk", "en"):
+        raise HTTPException(422, detail="lang must be ru, kk or en")
+    try:
+        data, _ = await _report_data(user, field_id, analysis_id)
+    except HANDLED as exc:
+        raise _err(exc) from exc
+    pdf = build_report(data, lang=lang, selected_variant_id=variant)
+    return Response(pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{report_filename(lang, "pdf")}"'})
+
+
+@router.get("/fields/{field_id}/report.xlsx")
+async def field_report_xlsx(field_id: int, lang: str = "ru", analysis_id: int | None = None,
+                            user: dict = Depends(auth.current_user)) -> Response:
+    from ..report.xlsx import build_workbook
+    from .routes import report_filename
+
+    if lang not in ("ru", "kk", "en"):
+        raise HTTPException(422, detail="lang must be ru, kk or en")
+    try:
+        data, _ = await _report_data(user, field_id, analysis_id)
+    except HANDLED as exc:
+        raise _err(exc) from exc
+    xlsx = build_workbook(data, lang=lang)
+    return Response(xlsx, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{report_filename(lang, "xlsx")}"'})

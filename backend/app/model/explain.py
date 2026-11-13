@@ -8,7 +8,7 @@ import yaml
 
 from .rules import Rules
 
-LANGS = ("ru", "kk")
+LANGS = ("ru", "kk", "en")
 TEMPLATES_PATH = Path(__file__).resolve().parent.parent / "locales" / "explain.yaml"
 NBSP = " "
 
@@ -41,7 +41,7 @@ def years_phrase(n: int) -> dict[str, str]:
         word = "года"
     else:
         word = "лет"
-    return {"ru": f"{n}{NBSP}{word}", "kk": f"{n}{NBSP}жыл"}
+    return {"ru": f"{n}{NBSP}{word}", "kk": f"{n}{NBSP}жыл", "en": f"{n}{NBSP}{'year' if n == 1 else 'years'}"}
 
 
 def _cap(text: str) -> str:

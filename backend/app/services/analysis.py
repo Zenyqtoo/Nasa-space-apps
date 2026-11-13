@@ -60,7 +60,7 @@ def _slow_source(src: DataSource, field: Field, start: date, end: date, start_jo
     return None, {"status": "pending", "job": job.as_dict()}
 
 
-def _resolution(source_id: str, lang_keys: tuple[str, ...] = ("ru", "kk")) -> dict:
+def _resolution(source_id: str, lang_keys: tuple[str, ...] = ("ru", "kk", "en")) -> dict:
     meta = source_catalog()[source_id]
     return {
         "source": source_id,

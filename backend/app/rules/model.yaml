@@ -88,17 +88,17 @@ scoring:
 
 priorities:
   max_income:
-    name: {ru: "Максимальный доход", kk: "Барынша жоғары табыс"}
+    name: {ru: "Максимальный доход", kk: "Барынша жоғары табыс", en: "Maximise income"}
     weights:
       {value: {income: 0.50, risk: 0.20, soil: 0.15, water: 0.15}, unit: "доля", source: model_design, status: assumption, evidence: preliminary,
        note: "Веса оценок для приоритета «максимальный доход». Настройка, не агрономия"}
   save_moisture:
-    name: {ru: "Сохранение влаги", kk: "Ылғалды сақтау"}
+    name: {ru: "Сохранение влаги", kk: "Ылғалды сақтау", en: "Conserve moisture"}
     weights:
       {value: {income: 0.15, risk: 0.25, soil: 0.15, water: 0.45}, unit: "доля", source: model_design, status: assumption, evidence: preliminary,
        note: "Веса оценок для приоритета «сохранение влаги». Настройка, не агрономия"}
   restore_soil:
-    name: {ru: "Восстановление почвы", kk: "Топырақты қалпына келтіру"}
+    name: {ru: "Восстановление почвы", kk: "Топырақты қалпына келтіру", en: "Restore soil"}
     weights:
       {value: {income: 0.20, risk: 0.15, soil: 0.50, water: 0.15}, unit: "доля", source: model_design, status: assumption, evidence: preliminary,
        note: "Веса оценок для приоритета «восстановление почвы». Настройка, не агрономия"}
@@ -179,14 +179,14 @@ stress_test:
 # ---------------------------------------------------------------- варианты по умолчанию
 default_variants:
   - id: wheat_mono
-    name: {ru: "Как сейчас: пшеница", kk: "Қазіргідей: бидай"}
+    name: {ru: "Как сейчас: пшеница", kk: "Қазіргідей: бидай", en: "Current practice: wheat"}
     crops: [wheat, wheat, wheat, wheat]
   - id: lentil_flax
-    name: {ru: "С чечевицей и льном", kk: "Жасымық пен зығырмен"}
+    name: {ru: "С чечевицей и льном", kk: "Жасымық пен зығырмен", en: "With lentil and flax"}
     crops: [wheat, lentil, wheat, flax]
   - id: pea_rapeseed_fallow
-    name: {ru: "С горохом, рапсом и паром", kk: "Асбұршақ, рапс және пармен"}
+    name: {ru: "С горохом, рапсом и паром", kk: "Асбұршақ, рапс және пармен", en: "With pea, rapeseed and fallow"}
     crops: [wheat, pea, rapeseed, fallow]
   - id: chickpea_sunflower
-    name: {ru: "С нутом и подсолнечником", kk: "Ноқат пен күнбағыспен"}
+    name: {ru: "С нутом и подсолнечником", kk: "Ноқат пен күнбағыспен", en: "With chickpea and sunflower"}
     crops: [wheat, chickpea, sunflower, wheat]

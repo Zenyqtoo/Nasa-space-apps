@@ -63,4 +63,4 @@ def test_backend_text_templates_cover_both_languages():
     for name in ("explain.yaml", "report.yaml"):
         data = yaml.safe_load((Path(__file__).resolve().parents[1] / "app" / "locales" / name).read_text(encoding="utf-8"))
         for key, entry in data.items():
-            assert set(entry) == {"ru", "kk"}, (name, key)
+            assert set(entry) == {"ru", "kk", "en"}, (name, key)

@@ -112,24 +112,23 @@ async def layer(
 
 @router.post("/report/pdf")
 async def report_pdf(req: ReportRequest) -> Response:
+    """PDF по контуру без учётной записи (совместимость с первой версией API)."""
     from ..report.pdf import build_report
+    from ..services.report_data import gather
 
     try:
-        comparison, analysis = await run_compare(req)
+        data = await gather(req)
     except (GeometryError, RulesError, ValueError) as exc:
         raise _bad_request(exc) from exc
     except AnalysisError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    pdf = build_report(
-        comparison,
-        analysis.response,
-        lang=req.lang,
-        selected_variant_id=req.selected_variant_id,
-        farm_name=req.farm_name,
-        stress_year_index=req.stress_year_index,
-    )
-    name = "agro-sevooborot-plan.pdf" if req.lang == "ru" else "agro-auyspaly-egis-zhospary.pdf"
-    return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{name}"'})
+    pdf = build_report(data, lang=req.lang, selected_variant_id=req.selected_variant_id, farm_name=req.farm_name)
+    return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{report_filename(req.lang, "pdf")}"'})
+
+
+def report_filename(lang: str, ext: str, field_name: str = "") -> str:
+    base = {"ru": "agro-sevooborot-report", "kk": "agro-auyspaly-egis-esep", "en": "agro-sevooborot-report"}.get(lang, "agro-sevooborot-report")
+    return f"{base}.{ext}"
 
 
 @router.get("/demo")
