@@ -36,7 +36,7 @@ export function useOfflineBasemap() {
 export function OfflineNote() {
   const { t } = useTranslation();
   return (
-    <div className="mt-2 rounded-lg bg-neutral-100 px-3 py-2 text-sm text-neutral-700" role="status">
+    <div className="mt-2 rounded-lg bg-surface-sunken px-3 py-2 text-sm text-ink-2" role="status">
       {t("wizard.field.basemap_offline")}
     </div>
   );

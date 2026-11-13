@@ -1,70 +1,82 @@
-import { useTranslation } from "react-i18next";
-import { NavLink, Route, Routes } from "react-router-dom";
-import type { Lang } from "./api/types";
-import Disclaimer from "./components/common/Disclaimer";
+import type { ReactNode } from "react";
+import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
+import AppShell from "./components/layout/AppShell";
+import Shell from "./components/layout/Shell";
+import { Loading } from "./components/ui/ui";
+import { AuthProvider, RequireAuth, useAuth } from "./lib/auth";
 import { ConfigProvider } from "./lib/config";
+import About from "./pages/About";
+import Account from "./pages/app/Account";
+import Analyses from "./pages/app/Analyses";
+import AnalysisView from "./pages/app/AnalysisView";
+import Dashboard from "./pages/app/Dashboard";
+import FieldEditor from "./pages/app/FieldEditor";
+import Fields from "./pages/app/Fields";
+import FieldWorkspace from "./pages/app/FieldWorkspace";
+import DemoStart from "./pages/auth/DemoStart";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
 import Landing from "./pages/Landing";
 import Methodology from "./pages/Methodology";
+import NasaData from "./pages/NasaData";
 import Retro from "./pages/Retro";
 import Wizard from "./pages/Wizard";
 
-function LangSwitch() {
-  const { t, i18n } = useTranslation();
+function Private({ children }: { children: ReactNode }) {
   return (
-    <div role="group" aria-label={t("app.lang.switch")} className="flex overflow-hidden rounded-xl border-2 border-white/70">
-      {(["ru", "kk"] as Lang[]).map((l) => (
-        <button
-          key={l}
-          type="button"
-          onClick={() => void i18n.changeLanguage(l)}
-          aria-pressed={i18n.language === l}
-          className={`min-h-[40px] px-3 font-bold ${i18n.language === l ? "bg-white text-field-800" : "text-white hover:bg-white/10"}`}
-        >
-          {t(`app.lang.${l}`)}
-        </button>
-      ))}
-    </div>
+    <RequireAuth>
+      <AppShell>{children}</AppShell>
+    </RequireAuth>
   );
 }
 
+/** Вошедший пользователь со стартовой страницы сразу попадает на дашборд. */
+function Home() {
+  const { user, loading } = useAuth();
+  if (loading) return <Loading />;
+  return user ? <Navigate to="/app" replace /> : <Landing />;
+}
+
+// ключ по id: при переходе между полями рабочее пространство монтируется заново
+function FieldWorkspaceKeyed() {
+  const { id } = useParams();
+  return <FieldWorkspace key={id} />;
+}
+
+function LegacyField() {
+  return <Navigate to={`/quick${useLocation().search}`} replace />;
+}
+
 export default function App() {
-  const { t } = useTranslation();
-  const link = ({ isActive }: { isActive: boolean }) =>
-    `whitespace-nowrap rounded-lg px-3 py-2 font-semibold no-underline ${isActive ? "bg-white text-field-800" : "text-white hover:bg-white/10"}`;
   return (
     <ConfigProvider>
-      <div className="flex min-h-screen flex-col">
-        <header className="bg-field-800 text-white">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <NavLink to="/" className="flex items-center gap-2 text-xl font-bold text-white no-underline">
-              <img src="/favicon.svg" alt="" className="h-8 w-8" />
-              {t("app.name")}
-            </NavLink>
-            <LangSwitch />
-          </div>
-          <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-2">
-            <NavLink to="/" end className={link}>{t("app.nav.home")}</NavLink>
-            <NavLink to="/field" className={link}>{t("app.nav.wizard")}</NavLink>
-            <NavLink to="/retro" className={link}>{t("app.nav.retro")}</NavLink>
-            <NavLink to="/methodology" className={link}>{t("app.nav.methodology")}</NavLink>
-          </nav>
-        </header>
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/field" element={<Wizard />} />
-            <Route path="/retro" element={<Retro />} />
-            <Route path="/methodology" element={<Methodology />} />
-            <Route path="*" element={<Landing />} />
-          </Routes>
-        </main>
-        <footer className="sticky bottom-0 z-[1000] border-t border-wheat-300 bg-wheat-100">
-          <div className="mx-auto max-w-6xl">
-            <Disclaimer compact />
-          </div>
-        </footer>
-        <div className="bg-field-900 px-4 py-3 text-center text-xs text-field-100">{t("app.footer")}</div>
-      </div>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/welcome" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/demo" element={<DemoStart />} />
+
+          <Route path="/app" element={<Private><Dashboard /></Private>} />
+          <Route path="/app/fields" element={<Private><Fields /></Private>} />
+          <Route path="/app/fields/new" element={<Private><FieldEditor /></Private>} />
+          <Route path="/app/fields/:id" element={<Private><FieldWorkspaceKeyed /></Private>} />
+          <Route path="/app/fields/:id/edit" element={<Private><FieldEditor /></Private>} />
+          <Route path="/app/analyses" element={<Private><Analyses /></Private>} />
+          <Route path="/app/analyses/:id" element={<Private><AnalysisView /></Private>} />
+          <Route path="/app/account" element={<Private><Account /></Private>} />
+
+          <Route path="/nasa" element={<Shell><NasaData /></Shell>} />
+          <Route path="/methodology" element={<Shell><Methodology /></Shell>} />
+          <Route path="/retro" element={<Shell><Retro /></Shell>} />
+          <Route path="/about" element={<Shell><About /></Shell>} />
+          <Route path="/quick" element={<Shell><Wizard /></Shell>} />
+          {/* совместимость со старыми ссылками */}
+          <Route path="/field" element={<LegacyField />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
     </ConfigProvider>
   );
 }

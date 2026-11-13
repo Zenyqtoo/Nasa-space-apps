@@ -1,13 +1,12 @@
+import { Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function Disclaimer({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
   return (
-    <div
-      role="note"
-      className={`border-l-4 border-wheat-500 bg-wheat-100 font-semibold text-soil-900 ${compact ? "px-3 py-2 text-sm" : "rounded-xl px-4 py-3"}`}
-    >
-      ⚠️ {t("app.disclaimer")}
+    <div role="note" className={`flex items-start gap-2 rounded-md border border-line bg-surface text-ink-2 ${compact ? "px-3 py-2 text-xs" : "px-4 py-3 text-sm"}`}>
+      <Info className="mt-0.5 h-4 w-4 flex-none text-ink-muted" />
+      {t("app.disclaimer")}
     </div>
   );
 }

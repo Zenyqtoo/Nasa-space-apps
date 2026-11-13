@@ -2,7 +2,8 @@
  "id": "demo-akmola-shortandy",
  "name": {
   "ru": "Демо-поле, Шортандинский район",
-  "kk": "Демо-егістік, Шортанды ауданы"
+  "kk": "Демо-егістік, Шортанды ауданы",
+  "en": "Demo field, Shortandy district"
  },
  "region": "akmola",
  "geometry": {
@@ -61,7 +62,8 @@
  "history_is_scenario": true,
  "history_note": {
   "ru": "История культур — учебный сценарий «пшеница много лет подряд». Что на самом деле сеяли на этом поле, не проверялось.",
-  "kk": "Дақылдар тарихы — «қатарынан көп жыл бидай» оқу сценарийі. Бұл егістікке іс жүзінде не себілгені тексерілмеген."
+  "kk": "Дақылдар тарихы — «қатарынан көп жыл бидай» оқу сценарийі. Бұл егістікке іс жүзінде не себілгені тексерілмеген.",
+  "en": "Crop history is a training scenario (wheat for many years in a row). What was actually sown on this field has not been verified."
  },
  "priority": "max_income",
  "horizon_years": 4,
@@ -71,5 +73,5 @@
   "lat": 51.68569,
   "lon": 70.93175
  },
- "built_at": "2026-11-12T18:35:38+00:00"
+ "built_at": "2026-11-13T20:22:26+00:00"
 }

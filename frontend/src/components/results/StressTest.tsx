@@ -25,7 +25,7 @@ export default function StressTest({
     const py = v.stress.per_year[idx - 1];
     return {
       key: v.id,
-      label: `${i + 1}`,
+      label: "ABCDEF"[i] ?? `${i + 1}`,
       name: variantName(v, lang, t),
       normal: v.stress.total_normal_kzt_ha / 1000,
       dry: (py?.total_if_dry_kzt_ha ?? 0) / 1000,
@@ -58,15 +58,15 @@ export default function StressTest({
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={rows} margin={{ top: 8, right: 16, bottom: 4, left: 0 }} barGap={2}>
-              <CartesianGrid stroke="#e5e5e0" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 13 }} />
-              <YAxis tick={{ fontSize: 13 }} width={52} />
+              <CartesianGrid stroke="#E3E6EA" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} width={52} />
               <ReferenceLine y={0} stroke="#8a8a8a" />
               <Tooltip
                 labelFormatter={(_, p) => (p?.[0]?.payload as { name?: string } | undefined)?.name ?? ""}
                 formatter={(v: number, k: string) => [fmtNum(v, 1), k === "normal" ? t("result.stress.normal") : t("result.stress.dry")]}
               />
-              <Legend formatter={(k: string) => (k === "normal" ? t("result.stress.normal") : t("result.stress.dry"))} wrapperStyle={{ fontSize: 13 }} />
+              <Legend formatter={(k: string) => (k === "normal" ? t("result.stress.normal") : t("result.stress.dry"))} wrapperStyle={{ fontSize: 12 }} />
               <Bar dataKey="normal" fill="#2a78d6" radius={[4, 4, 0, 0]} isAnimationActive={false} />
               <Bar dataKey="dry" fill="#eb6834" radius={[4, 4, 0, 0]} isAnimationActive={false} />
             </BarChart>
@@ -75,7 +75,7 @@ export default function StressTest({
       </figure>
       <div className="card overflow-x-auto p-0">
         <table className="w-full text-sm">
-          <thead className="bg-field-100">
+          <thead className="bg-surface">
             <tr>
               <th className="px-3 py-2 text-left">{t("result.forecast.table_variant")}</th>
               <th className="px-3 py-2 text-right">{t("result.stress.normal")}</th>
@@ -88,7 +88,7 @@ export default function StressTest({
               <tr key={r.key} className="border-t">
                 <td className="px-3 py-2">
                   <b>{r.label}.</b> {r.name}
-                  <div className="text-xs text-neutral-600">{r.year} · {r.crop}</div>
+                  <div className="text-xs text-ink-muted">{r.year} · {r.crop}</div>
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">{fmtInt(r.normal * 1000)}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{fmtInt(r.dry * 1000)}</td>

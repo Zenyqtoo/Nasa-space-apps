@@ -26,7 +26,7 @@ export default function PdfPanel({ request, comparison, stressYearIndex }: { req
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = lang === "kk" ? "agro-auyspaly-egis-zhospary.pdf" : "agro-sevooborot-plan.pdf";
+      a.download = { ru: "agro-sevooborot-plan.pdf", kk: "agro-auyspaly-egis-zhospary.pdf", en: "agro-rotation-plan.pdf" }[lang];
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -59,12 +59,13 @@ export default function PdfPanel({ request, comparison, stressYearIndex }: { req
         <select className="input" value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
           <option value="ru">{t("app.lang.ru_name")}</option>
           <option value="kk">{t("app.lang.kk_name")}</option>
+          <option value="en">{t("app.lang.en_name")}</option>
         </select>
       </label>
       <button type="button" className="btn-primary" disabled={busy} onClick={() => void download()}>
-        📄 {busy ? t("result.pdf.preparing") : t("result.pdf.download")}
+        {busy ? t("result.pdf.preparing") : t("result.pdf.download")}
       </button>
-      {error && <p className="text-sm text-red-800 md:col-span-4">{t("app.error")}: {error}</p>}
+      {error && <p className="text-sm text-status-bad md:col-span-4">{t("app.error")}: {error}</p>}
     </div>
   );
 }

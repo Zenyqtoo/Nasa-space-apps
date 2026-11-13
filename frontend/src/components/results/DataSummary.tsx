@@ -10,8 +10,8 @@ function Stat({ label, value, detail }: { label: string; value: string; detail?:
   return (
     <div className="card">
       <div className="label">{label}</div>
-      <div className="text-2xl font-bold text-field-800">{value}</div>
-      {detail && <div className="mt-1 text-sm text-neutral-700">{detail}</div>}
+      <div className="text-2xl font-semibold text-field-800">{value}</div>
+      {detail && <div className="mt-1 text-sm text-ink-2">{detail}</div>}
     </div>
   );
 }
@@ -112,7 +112,7 @@ export default function DataSummary({ analysis }: { analysis: Analysis }) {
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={precipRows} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                <CartesianGrid stroke="#e5e5e0" vertical={false} />
+                <CartesianGrid stroke="#E3E6EA" vertical={false} />
                 <XAxis dataKey="year" tick={{ fontSize: 12 }} interval={3} />
                 <YAxis tick={{ fontSize: 12 }} width={40} />
                 <ReferenceLine y={d.definition.percentile_mm} stroke={DRY} strokeDasharray="4 4" />
@@ -129,7 +129,7 @@ export default function DataSummary({ analysis }: { analysis: Analysis }) {
             <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: NORMAL }} />{t("result.summary.precip_chart_normal")}</span>
             <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-sm" style={{ background: DRY }} />{t("result.summary.precip_chart_dry")}</span>
           </div>
-          <p className="mt-2 text-xs text-neutral-600">
+          <p className="mt-2 text-xs text-ink-muted">
             {t("result.summary.dry_definition", {
               p: fmtNum(d.definition.percentile_mm, 0),
               b0: d.definition.baseline[0],
@@ -149,7 +149,7 @@ export default function DataSummary({ analysis }: { analysis: Analysis }) {
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={ndviRows} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-                  <CartesianGrid stroke="#e5e5e0" vertical={false} />
+                  <CartesianGrid stroke="#E3E6EA" vertical={false} />
                   <XAxis dataKey="year" tick={{ fontSize: 12 }} interval={3} type="number" domain={["dataMin", "dataMax"]} />
                   <YAxis tick={{ fontSize: 12 }} width={40} domain={[0, 1]} />
                   <Tooltip formatter={(v: number, k: string) => [fmtNum(v, 3), k === "fit" ? t("result.summary.ndvi_chart_trend") : "NDVI"]} />
@@ -160,7 +160,7 @@ export default function DataSummary({ analysis }: { analysis: Analysis }) {
               </ResponsiveContainer>
             </div>
           ) : (
-            <p className="text-neutral-700">{ndviValue}</p>
+            <p className="text-ink-2">{ndviValue}</p>
           )}
         </figure>
       </div>
@@ -176,7 +176,7 @@ export default function DataSummary({ analysis }: { analysis: Analysis }) {
                 sand: fmtNum(soil.topsoil.sand_pct, 0),
                 ph: fmtNum(soil.topsoil.ph, 1),
               })}{" "}
-              <span className="text-sm text-neutral-600">({origin(analysis.soil.origin)})</span>
+              <span className="text-sm text-ink-muted">({origin(analysis.soil.origin)})</span>
             </p>
           ) : (
             <p>{t("result.summary.soil_unavailable")}</p>

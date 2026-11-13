@@ -1,7 +1,7 @@
 // Типы ответов API бэкенда (backend/app/api/routes.py).
 import type { Polygon } from "geojson";
 
-export type Lang = "ru" | "kk";
+export type Lang = "ru" | "kk" | "en";
 export type I18nText = Record<Lang, string>;
 export type Status = "verified" | "assumption";
 export type Evidence = "literature" | "agronomist_review" | "preliminary" | "definition";
@@ -264,6 +264,11 @@ export interface YearResult {
   income_kzt_ha: number;
   income_dry_kzt_ha: number;
   soil_index: number;
+  revenue_kzt_ha: number;
+  nitrogen_kg_ha: number;
+  humus_t_ha: number;
+  soil_delta: number;
+  predecessor_rule: string | null;
 }
 
 export interface VariantResult {
@@ -283,6 +288,8 @@ export interface VariantResult {
     water_deficit_mean_mm: number;
     monoculture_years: number;
     drought_loss_pct: number;
+    revenue_kzt_ha: number;
+    drought_loss_mean_kzt_ha: number;
   };
   stress: {
     per_year: {
@@ -304,6 +311,8 @@ export interface VariantResult {
   params_used: number;
   assumptions_used: number;
   explanation: ({ code: string } & I18nText)[];
+  confidence: Confidence;
+  economics: Economics;
 }
 
 export interface Comparison {
@@ -320,6 +329,9 @@ export interface Comparison {
   best_variant_id: string;
   baseline_variant_id: string;
   warnings: DataWarning[];
+  weights_custom?: boolean;
+  drought?: { stress_year: number; stress_year_reason: string; dry_years: number[]; share: number; every_nth: number | null };
+  history?: HistoryItem[];
 }
 
 export interface DemoField {
@@ -394,4 +406,238 @@ export interface RulesCatalog {
 export interface LandingFact {
   name: string;
   url: string;
+}
+
+// ---------------------------------------------------------------- учётные записи и поля
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  farm_name: string;
+  lang: Lang;
+  is_demo: boolean;
+  created_at: string;
+}
+
+export interface SoilInfo {
+  humus_pct: number | null;
+  ph: number | null;
+  texture: "sand" | "sandy_loam" | "loam" | "clay_loam" | "clay" | null;
+  soil_type: string;
+  survey_year: number | null;
+  notes: string;
+}
+
+export interface FieldRecord {
+  id: number;
+  name: string;
+  region: string;
+  geometry: Polygon;
+  area_ha: number;
+  centroid_lat: number;
+  centroid_lon: number;
+  soil: SoilInfo;
+  notes: string;
+  history: HistoryItem[];
+  history_is_scenario: boolean;
+  created_at: string;
+  updated_at: string;
+  n_analyses?: number;
+  last_analysis_at?: string | null;
+}
+
+export interface FieldInput {
+  name: string;
+  region: string;
+  geometry: Polygon;
+  history: HistoryItem[];
+  history_is_scenario: boolean;
+  soil: SoilInfo;
+  notes: string;
+}
+
+export type ScoreWeights = Record<ScoreKey, number>;
+
+export interface AnalysisInput {
+  title?: string;
+  priority: string;
+  weights?: ScoreWeights | null;
+  horizon_years: number;
+  variants?: Variant[];
+  start_year?: number;
+  stress_year?: number | null;
+}
+
+export interface AnalysisSummary {
+  best_variant_id: string;
+  best_variant_name: I18nText | null;
+  best_crops: string[];
+  priority: string;
+  weights: ScoreWeights;
+  weights_custom: boolean;
+  horizon_years: number;
+  start_year: number;
+  stress_year: number;
+  variants: { id: string; name: I18nText | null; crops: string[]; weighted_score: number; gross_margin_kzt_ha: number; confidence: string }[];
+}
+
+export interface AnalysisListItem {
+  id: number;
+  field_id: number;
+  field_name: string;
+  title: string;
+  summary: AnalysisSummary;
+  created_at: string;
+}
+
+export interface SavedAnalysis extends AnalysisListItem {
+  request: AnalysisInput;
+  result: Comparison;
+}
+
+// ---------------------------------------------------------------- мониторинг
+export type DataKind = "observation" | "reanalysis" | "statistic" | "model";
+
+export interface MonthlyClimate {
+  month: string;
+  precip_mm: number | null;
+  precip_normal_mm: number | null;
+  precip_pct_of_normal: number | null;
+  t_mean: number | null;
+  t_normal: number | null;
+  t_anomaly: number | null;
+  t_max_mean: number | null;
+  hot_days: number;
+  gwetroot: number | null;
+}
+
+export interface SourceMeta {
+  id: string;
+  title: string;
+  resolution_m: number | null;
+  origin: Origin;
+  spatial_resolution: I18nText;
+  provenance: I18nText;
+  state?: string;
+}
+
+export interface Monitoring {
+  range: { start: string; end: string };
+  climate: { months: MonthlyClimate[]; baseline: [number, number]; available: [string, string] };
+  ndvi: {
+    available: boolean;
+    composites: { date: string; ndvi: number | null; valid_fraction: number; median: number | null; p10: number | null; p90: number | null; anomaly: number | null }[];
+    n_field_pixels?: number;
+  };
+  soil_moisture: { available: boolean; days: { date: string; sm: number }[] };
+  sources: Record<"power" | "modis" | "smap" | "gpm", SourceMeta>;
+  jobs: { source: string; status?: string; job?: Job }[];
+  hot_day_threshold_c: number;
+}
+
+export interface SeasonRow {
+  year: number;
+  precip_mm: number;
+  precip_anomaly_z: number;
+  is_dry: boolean;
+  t_mean: number | null;
+  t_anomaly: number | null;
+  t_anomaly_z: number | null;
+  hot_days: number | null;
+  ndvi_max: number | null;
+  ndvi_max_date: string | null;
+  ndvi_mean: number | null;
+  n_composites: number;
+  smap_spring: number | null;
+  smap_ratio: number | null;
+  gwet_spring: number | null;
+}
+
+export interface Seasons {
+  years: SeasonRow[];
+  window_averages: Record<string, number | null>;
+  baseline: { years: [number, number]; t_mean: number; t_sd: number; hot_days: number; precip_mean: number; precip_sd: number };
+  ndvi_curves: Record<string, { doy: number; date: string; ndvi: number }[]>;
+  ndvi_climatology: { doy: number; median: number; p10: number; p90: number }[];
+  ndvi_trend: NdviTrend | null;
+  hot_day_threshold_c: number;
+}
+
+export type RiskLevel = "low" | "moderate" | "high" | "unknown";
+
+export interface RiskItem {
+  id: string;
+  kind: DataKind;
+  source: string;
+  period?: string | null;
+  value?: number | null;
+  unit?: string;
+  reference?: number | null;
+  z?: number | null;
+  percentile?: number | null;
+  ratio?: number | null;
+  every_nth?: number | null;
+  dry_years?: number[];
+  threshold_c?: number;
+  fallback_for?: string;
+  crop?: string;
+  level: RiskLevel;
+}
+
+export interface Risk {
+  latest_season: number;
+  overall: RiskLevel;
+  items: RiskItem[];
+  thresholds: Record<string, ParamRef>;
+  warnings: DataWarning[];
+}
+
+export interface SuitabilityCrop {
+  crop: string;
+  group: string;
+  category: "favourable" | "conditional" | "limited";
+  flags: ("moisture" | "predecessor" | "monoculture" | "drought" | "margin")[];
+  water_need_mm: number;
+  water_available_mm: number;
+  moisture_coef: number;
+  ky: number;
+  drought_loss_pct: number;
+  predecessor: string | null;
+  predecessor_effect_pct: number;
+  monoculture: boolean;
+  yield_t_ha: number;
+  gross_margin_kzt_ha: number;
+  confidence: Confidence;
+}
+
+export interface Suitability {
+  crops: SuitabilityCrop[];
+  context: {
+    water_normal_mm: number;
+    water_dry_mm: number;
+    dry_year: number;
+    gdd5_may_sep_mean: number | null;
+    gdd_years: [number, number] | null;
+    soil: { humus_pct: number | null; clay_pct: number | null; sand_pct: number | null; ph: number | null } | null;
+    predecessor: string | null;
+  };
+  thresholds: Record<string, ParamRef>;
+}
+
+export interface Confidence {
+  params_total: number;
+  params_supported: number;
+  share: number;
+  level: "high" | "medium" | "low";
+  by_evidence: Record<string, number>;
+}
+
+export interface Economics {
+  revenue_kzt_ha: number;
+  cost_kzt_ha: number;
+  gross_margin_kzt_ha: number;
+  margin_price_minus20_kzt_ha: number;
+  margin_price_plus20_kzt_ha: number;
+  breakeven_price_factor: number | null;
+  per_year: { year: number; crop: string; revenue_kzt_ha: number; cost_kzt_ha: number; gross_margin_kzt_ha: number }[];
 }

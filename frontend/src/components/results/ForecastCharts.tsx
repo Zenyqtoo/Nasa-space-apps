@@ -7,7 +7,7 @@ import { useCropName } from "../../lib/config";
 import { fmtInt, fmtNum } from "../../lib/format";
 import { variantName } from "./VariantCards";
 
-const AXIS = { fontSize: 13, fill: "#3f3f3f" };
+const AXIS = { fontSize: 12, fill: "#5B6470" };
 
 function Chart({ comparison, metric, title }: { comparison: Comparison; metric: "income" | "soil"; title: string }) {
   const { t, i18n } = useTranslation();
@@ -30,7 +30,7 @@ function Chart({ comparison, metric, title }: { comparison: Comparison; metric: 
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
-            <CartesianGrid stroke="#e5e5e0" vertical={false} />
+            <CartesianGrid stroke="#E3E6EA" vertical={false} />
             <XAxis dataKey="year" tick={AXIS} />
             <YAxis tick={AXIS} width={52} domain={metric === "soil" ? ["auto", "auto"] : undefined} />
             {metric === "income" && <ReferenceLine y={0} stroke="#8a8a8a" />}
@@ -42,7 +42,7 @@ function Chart({ comparison, metric, title }: { comparison: Comparison; metric: 
                 return [metric === "income" ? `${fmtNum(value, 1)} (${crop})` : `${fmtNum(value, 1)} (${crop})`, v ? variantName(v, lang, t) : key];
               }}
             />
-            <Legend wrapperStyle={{ fontSize: 13 }} formatter={(key: string) => {
+            <Legend wrapperStyle={{ fontSize: 12 }} formatter={(key: string) => {
               const v = comparison.variants.find((x) => x.id === key);
               return v ? variantName(v, lang, t) : key;
             }} />
@@ -74,7 +74,7 @@ export default function ForecastCharts({ comparison }: { comparison: Comparison 
       {table && (
         <div className="card overflow-x-auto p-0">
           <table className="w-full text-sm">
-            <thead className="bg-field-100">
+            <thead className="bg-surface">
               <tr>
                 <th className="px-3 py-2 text-left">{t("result.forecast.table_variant")}</th>
                 {comparison.variants[0]?.years.map((y) => (
@@ -88,7 +88,7 @@ export default function ForecastCharts({ comparison }: { comparison: Comparison 
                   <td className="px-3 py-2 font-semibold">{variantName(v, lang, t)}</td>
                   {v.years.map((y) => (
                     <td key={y.year} className="px-3 py-2 text-right tabular-nums">
-                      <div className="text-xs text-neutral-600">{cropName(y.crop, lang)}</div>
+                      <div className="text-xs text-ink-muted">{cropName(y.crop, lang)}</div>
                       <div>{fmtInt(y.income_kzt_ha)} {t("result.compare.per_ha")}</div>
                       <div className="text-xs">{fmtNum(y.yield_t_ha, 2)} {t("units.t_ha")} · {t("result.scores.soil")} {fmtNum(y.soil_index, 1)}</div>
                     </td>

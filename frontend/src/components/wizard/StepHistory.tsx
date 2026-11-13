@@ -38,7 +38,7 @@ export default function StepHistory({ history, priority, horizon, isDemo, demoNo
         {isDemo && demoNote && <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-950">{demoNote}</p>}
         <div className="card overflow-x-auto p-0">
           <table className="w-full text-left">
-            <thead className="bg-field-100 text-sm">
+            <thead className="bg-surface text-sm">
               <tr>
                 <th className="px-4 py-2">{t("wizard.history.year")}</th>
                 <th className="px-4 py-2">{t("wizard.history.crop")}</th>
@@ -94,8 +94,8 @@ export default function StepHistory({ history, priority, horizon, isDemo, demoNo
             >
               <input type="radio" name="priority" className="mt-1.5 h-5 w-5 accent-field-700" checked={priority === p.id} onChange={() => onPriority(p.id)} />
               <span>
-                <span className="block text-lg font-bold">{p.name[lang]}</span>
-                <span className="text-sm text-neutral-600">
+                <span className="block text-lg font-semibold">{p.name[lang]}</span>
+                <span className="text-sm text-ink-muted">
                   {(["income", "water", "soil", "risk"] as const).map((k) => `${t(`result.scores.${k}`)} ${Math.round(p.weights[k] * 100)} %`).join(" · ")}
                 </span>
               </span>

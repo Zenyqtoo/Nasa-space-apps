@@ -1,3 +1,4 @@
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Comparison, Lang, ScoreKey, Variant, VariantResult } from "../../api/types";
@@ -21,11 +22,11 @@ function Card({ v, index, comparison, lang }: { v: VariantResult; index: number;
   const years = t("wizard.history.years", { count: comparison.horizon_years });
   return (
     <article
-      className={`card flex flex-col gap-3 border-t-8 ${v.fits_priority ? "ring-4 ring-wheat-300" : ""}`}
+      className={`card flex flex-col gap-3 border-t-4 ${v.fits_priority ? "ring-2 ring-field-300" : ""}`}
       style={{ borderTopColor: seriesColor(index) }}
     >
       {v.fits_priority && (
-        <div className="-mx-1 rounded-lg bg-wheat-100 px-3 py-1.5 text-sm font-bold text-soil-900">★ {t("result.compare.fits")}</div>
+        <div className="-mx-1 flex items-center gap-1.5 rounded-md bg-field-50 px-2.5 py-1.5 text-sm font-medium text-field-800"><CheckCircle2 className="h-4 w-4" /> {t("result.compare.fits")}</div>
       )}
       <h3 className="h3">
         {index + 1}. {variantName(v, lang, t)}
@@ -34,14 +35,14 @@ function Card({ v, index, comparison, lang }: { v: VariantResult; index: number;
         {v.years.map((y, i) => (
           <li key={y.index} className="flex items-center gap-1">
             <span
-              className={`rounded-lg px-2 py-1 font-semibold ${
-                y.group === "legume" ? "bg-field-100 text-field-900" : y.group === "fallow" ? "bg-soil-100 text-soil-900" : y.group === "oilseed" ? "bg-wheat-100 text-soil-900" : "bg-neutral-100"
+              className={`rounded px-1.5 py-0.5 text-xs font-medium ${
+                y.group === "legume" ? "bg-field-50 text-field-800" : y.group === "fallow" ? "bg-soil-50 text-soil-700" : y.group === "oilseed" ? "bg-wheat-100 text-soil-700" : "bg-surface-sunken text-ink-2"
               }`}
               title={`${y.year}`}
             >
               {cropName(y.crop, lang)}
             </span>
-            {i < v.years.length - 1 && <span aria-hidden>→</span>}
+            {i < v.years.length - 1 && <span aria-hidden className="text-ink-subtle">→</span>}
           </li>
         ))}
       </ol>
@@ -50,16 +51,16 @@ function Card({ v, index, comparison, lang }: { v: VariantResult; index: number;
           <ScoreRow key={k} k={k} score={v.scores[k]} />
         ))}
       </div>
-      <div className="mt-auto space-y-1 border-t pt-3">
+      <div className="mt-auto space-y-1 border-t border-line pt-3">
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-sm">{t("result.compare.income_total", { years })}</span>
-          <span className="text-xl font-bold tabular-nums">
+          <span className="text-lg font-semibold tabular-nums">
             {fmtInt(v.totals.income_kzt_ha)} <span className="text-sm font-normal">{t("result.compare.per_ha")}</span>
           </span>
         </div>
-        <div className="text-right text-sm text-neutral-700">{t("result.compare.field_total", { value: fmtInt(v.totals.income_field_kzt) })}</div>
+        <div className="text-right text-sm text-ink-muted">{t("result.compare.field_total", { value: fmtInt(v.totals.income_field_kzt) })}</div>
         {diff !== null && (
-          <div className="text-right text-sm font-semibold">
+          <div className="text-right text-sm font-medium">
             {t("result.compare.vs_base", { sign: "", value: fmtSigned(diff) })}
           </div>
         )}
@@ -70,8 +71,8 @@ function Card({ v, index, comparison, lang }: { v: VariantResult; index: number;
           })}>
             {t("result.compare.weighted")}: <b>{fmtNum(v.weighted_score, 2)}</b>
           </span>
-          <span className="rounded-full border border-amber-500 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900" title={t("app.needs_check_title")}>
-            ⚠ {t("result.compare.assumptions", { n: v.assumptions_used, total: v.params_used })}
+          <span className="badge-amber" title={t("app.needs_check_title")}>
+            <AlertTriangle className="h-3 w-3" /> {t("result.compare.assumptions", { n: v.assumptions_used, total: v.params_used })}
           </span>
         </div>
       </div>

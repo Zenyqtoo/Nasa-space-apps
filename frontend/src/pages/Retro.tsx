@@ -26,7 +26,7 @@ function VerifiedField({ field }: { field: RetroField }) {
   return (
     <article className="card space-y-2">
       <h2 className="h3">{field.name}</h2>
-      <p className="text-sm text-neutral-700">{field.evidence}</p>
+      <p className="text-sm text-ink-2">{field.evidence}</p>
       {!analysis ? (
         <Spinner label={t("retro.loading_field")} />
       ) : (
@@ -50,7 +50,7 @@ function VerifiedField({ field }: { field: RetroField }) {
       )}
       <ul className="flex flex-wrap gap-1 text-xs">
         {field.history.map((h) => (
-          <li key={h.year} className={`rounded px-2 py-1 ${group(h.crop) === "legume" ? "bg-field-200" : "bg-neutral-100"}`}>{h.year}: {cropName(h.crop, lang)}</li>
+          <li key={h.year} className={`rounded px-2 py-1 ${group(h.crop) === "legume" ? "bg-field-200" : "bg-surface-sunken"}`}>{h.year}: {cropName(h.crop, lang)}</li>
         ))}
       </ul>
     </article>
@@ -71,7 +71,7 @@ function SubmitForm() {
   const [consent, setConsent] = useState(false);
   const [state, setState] = useState<"idle" | "busy" | "sent" | "error">("idle");
   if (!config) return null;
-  if (state === "sent") return <p className="card bg-field-100 font-semibold">{t("retro.sent")}</p>;
+  if (state === "sent") return <p className="card bg-surface font-semibold">{t("retro.sent")}</p>;
   return (
     <form
       className="card space-y-4"

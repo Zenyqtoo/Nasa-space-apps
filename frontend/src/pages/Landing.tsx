@@ -1,136 +1,129 @@
-import { useEffect, useState } from "react";
+import { ArrowRight, BarChart3, CloudSun, FileDown, Map as MapIcon, Scale, ShieldAlert } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { api } from "../api/client";
-import type { LandingFact } from "../api/types";
+import PublicLayout from "../components/layout/PublicLayout";
 
-// Какие сноски стоят у каждого абзаца (ключи из content/sources.yaml)
-const FOOTNOTES: Record<string, string[]> = {
-  problem_1: ["wheat_share_87"],
-  problem_2: ["fertility_minus_17", "degradation_75", "loss_2_4_bn"],
-  problem_3: ["humus_50_100_years"],
-  problem_4: ["harvest_2021", "emergency_2023"],
-  state_text: ["wheat_minus_730k", "legumes_nitrogen", "prices_oilseeds", "prodcorp_forward"],
-  why_3: ["nasa_free"],
-};
-const ORDER = Object.values(FOOTNOTES).flat();
+const FEATURES = [
+  { key: "fields", icon: MapIcon },
+  { key: "monitoring", icon: BarChart3 },
+  { key: "risk", icon: ShieldAlert },
+  { key: "planner", icon: Scale },
+  { key: "drought", icon: CloudSun },
+  { key: "reports", icon: FileDown },
+];
+const DATASETS = ["power", "modis", "smap", "soilgrids"] as const;
+const SHOTS = ["planner", "monitoring", "dashboard"] as const;
 
-function Refs({ k }: { k: string }) {
+/** Снимок настоящего интерфейса (делается скриптом scripts/screenshots.mjs на демо-данных). */
+function Shot({ name, className = "" }: { name: string; className?: string }) {
+  const { t, i18n } = useTranslation();
+  const [ok, setOk] = useState(true);
+  if (!ok) return null;
+  const lang = i18n.language === "en" ? "en" : i18n.language === "kk" ? "kk" : "ru";
   return (
-    <>
-      {(FOOTNOTES[k] ?? []).map((id) => (
-        <sup key={id} className="ml-0.5">
-          <a href={`#fn-${id}`} className="font-semibold no-underline">[{ORDER.indexOf(id) + 1}]</a>
-        </sup>
-      ))}
-    </>
+    <img
+      src={`/preview/${name}-${lang}.png`}
+      alt={t(`landing2.shot_${name}`)}
+      className={`w-full rounded-lg border border-line bg-white shadow-lg ${className}`}
+      loading="lazy"
+      onError={() => setOk(false)}
+    />
   );
 }
 
 export default function Landing() {
   const { t } = useTranslation();
-  const [facts, setFacts] = useState<Record<string, LandingFact>>({});
-  useEffect(() => {
-    api.landing().then((r) => setFacts(r.facts)).catch(() => setFacts({}));
-  }, []);
-
-  const P = ({ k }: { k: string }) => (
-    <p>
-      {t(`landing.${k}`)}
-      <Refs k={k} />
-    </p>
-  );
-  const List = ({ keys }: { keys: string[] }) => (
-    <ul className="space-y-3">
-      {keys.map((k) => (
-        <li key={k} className="flex gap-3">
-          <span aria-hidden className="mt-2 h-2 w-2 flex-none rounded-full bg-field-600" />
-          <span>
-            {t(`landing.${k}`)}
-            <Refs k={k} />
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-
   return (
-    <div className="space-y-8">
-      <section className="rounded-3xl bg-gradient-to-br from-field-800 to-field-600 px-5 py-10 text-white sm:px-10">
-        <h1 className="max-w-3xl text-3xl font-bold leading-tight sm:text-5xl">{t("landing.hero_title")}</h1>
-        <p className="mt-4 max-w-3xl text-lg text-field-50">{t("landing.hero_text")}</p>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <Link to="/field" className="btn bg-wheat-300 text-soil-900 hover:bg-wheat-500">{t("landing.cta_own")}</Link>
-          <Link to="/field?demo=1" className="btn border-2 border-white text-white hover:bg-white/10">{t("landing.cta_demo")}</Link>
+    <PublicLayout wide>
+      <section className="border-b border-line bg-white">
+        <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:py-20">
+          <div>
+            <div className="eyebrow text-field-700">{t("landing2.eyebrow")}</div>
+            <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight text-ink sm:text-4xl">{t("landing2.title")}</h1>
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-2">{t("landing2.lead")}</p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link to="/register" className="btn-primary btn-lg no-underline">{t("landing2.cta_signup")}</Link>
+              <Link to="/demo" className="btn-secondary btn-lg no-underline">{t("landing2.cta_demo")} <ArrowRight className="h-4 w-4" /></Link>
+            </div>
+            <p className="mt-3 text-xs text-ink-muted">{t("landing2.demo_note")}</p>
+          </div>
+          <Shot name="planner" />
         </div>
       </section>
 
-      <section className="card space-y-4">
-        <h2 className="h2">{t("landing.problem_title")}</h2>
-        <p className="text-lg font-semibold">{t("landing.problem_lead")}</p>
-        <List keys={["problem_1", "problem_2", "problem_3", "problem_4"]} />
-      </section>
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <section className="card space-y-3">
-          <h2 className="h2">{t("landing.state_title")}</h2>
-          <P k="state_text" />
-        </section>
-        <section className="card space-y-3">
-          <h2 className="h2">{t("landing.why_title")}</h2>
-          <List keys={["why_1", "why_2", "why_3", "why_4"]} />
-        </section>
-      </div>
-
-      <section className="card">
-        <h2 className="h2">{t("landing.how_title")}</h2>
-        <ol className="mt-4 grid gap-4 sm:grid-cols-3">
-          {["how_1", "how_2", "how_3"].map((k, i) => (
-            <li key={k} className="rounded-xl bg-field-50 p-4">
-              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-field-700 text-lg font-bold text-white">{i + 1}</div>
-              {t(`landing.${k}`)}
-            </li>
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+        <h2 className="h2">{t("landing2.offers_title")}</h2>
+        <p className="mt-1 max-w-2xl text-sm text-ink-muted">{t("landing2.offers_lead")}</p>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map(({ key, icon: Icon }) => (
+            <div key={key} className="panel p-5">
+              <Icon className="h-5 w-5 text-field-700" />
+              <h3 className="h3 mt-3">{t(`landing2.f_${key}`)}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-ink-muted">{t(`landing2.f_${key}_text`)}</p>
+            </div>
           ))}
-        </ol>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <Link to="/field" className="btn-primary">{t("landing.cta_own")}</Link>
-          <Link to="/field?demo=1" className="btn-secondary">{t("landing.cta_demo")}</Link>
         </div>
       </section>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <section className="card space-y-3">
-          <h2 className="h2">{t("landing.for_title")}</h2>
-          <List keys={["for_1", "for_2", "for_3"]} />
-        </section>
-        <section className="card space-y-3">
-          <h2 className="h2">{t("landing.change_title")}</h2>
-          <List keys={["change_1", "change_2", "change_3"]} />
-        </section>
-      </div>
-
-      <section className="card">
-        <h2 className="h3">{t("landing.footnotes")}</h2>
-        <ol className="mt-3 space-y-1.5 text-sm">
-          {ORDER.map((id, i) => {
-            const f = facts[id];
-            const todo = !f || f.url.startsWith("TODO");
-            return (
-              <li key={id} id={`fn-${id}`} className="flex gap-2">
-                <span className="font-semibold">[{i + 1}]</span>
-                <span>
-                  {f?.name ?? id}{" "}
-                  {todo ? (
-                    <span className="rounded bg-amber-50 px-1.5 text-amber-900">TODO: {t("landing.todo_link")}</span>
-                  ) : (
-                    <a href={f.url} target="_blank" rel="noreferrer" className="break-all">{f.url}</a>
-                  )}
-                </span>
+      <section className="border-y border-line bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+          <h2 className="h2">{t("landing2.how_title")}</h2>
+          <ol className="mt-6 grid gap-6 md:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <li key={i}>
+                <div className="flex h-7 w-7 items-center justify-center rounded bg-field-700 text-sm font-semibold text-white">{i}</div>
+                <h3 className="h3 mt-3">{t(`landing2.how_${i}`)}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-ink-muted">{t(`landing2.how_${i}_text`)}</p>
               </li>
-            );
-          })}
-        </ol>
+            ))}
+          </ol>
+        </div>
       </section>
-    </div>
+
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+        <h2 className="h2">{t("landing2.preview_title")}</h2>
+        <p className="mt-1 max-w-2xl text-sm text-ink-muted">{t("landing2.preview_lead")}</p>
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          {SHOTS.slice(1).map((s) => (
+            <figure key={s}>
+              <Shot name={s} />
+              <figcaption className="mt-2 text-sm text-ink-muted">{t(`landing2.shot_${s}`)}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-t border-line bg-white">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+          <div>
+            <h2 className="h2">{t("landing2.nasa_title")}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink-2">{t("landing2.nasa_lead")}</p>
+            <Link to="/nasa" className="mt-4 inline-flex items-center gap-1 text-sm font-medium">{t("landing2.nasa_more")} <ArrowRight className="h-4 w-4" /></Link>
+          </div>
+          <dl className="grid gap-4 sm:grid-cols-2">
+            {DATASETS.map((d) => (
+              <div key={d} className="rounded-md border border-line p-4">
+                <dt className="text-sm font-semibold text-ink">{t(`landing2.ds_${d}`)}</dt>
+                <dd className="mt-1 text-xs leading-relaxed text-ink-muted">{t(`landing2.ds_${d}_text`)}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <section className="bg-field-800">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-6 px-4 py-10 sm:px-6">
+          <div>
+            <h2 className="text-lg font-semibold text-white">{t("landing2.final_title")}</h2>
+            <p className="mt-1 text-sm text-white/75">{t("landing2.final_text")}</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link to="/register" className="btn btn-lg bg-white text-field-800 no-underline hover:bg-field-50">{t("landing2.cta_signup")}</Link>
+            <Link to="/login" className="btn btn-lg border border-white/40 text-white no-underline hover:bg-white/10">{t("auth.login")}</Link>
+          </div>
+        </div>
+      </section>
+    </PublicLayout>
   );
 }

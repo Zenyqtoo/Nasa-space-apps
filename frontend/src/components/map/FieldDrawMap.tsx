@@ -110,24 +110,25 @@ function GoTo() {
   };
   return (
     <div className="leaflet-bottom leaflet-left">
-      <form
-        className="leaflet-control flex gap-1 rounded-lg bg-white p-1 shadow"
-        onSubmit={(e) => {
-          e.preventDefault();
-          go();
-        }}
-      >
+      {/* не <form>: карта бывает внутри формы редактора поля */}
+      <div className="leaflet-control flex gap-1 rounded-md bg-white p-1 shadow">
         <input
           className="w-44 rounded border px-2 py-1 text-sm"
           placeholder="51.69, 70.93"
           aria-label={t("wizard.field.search_coords")}
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              go();
+            }
+          }}
         />
-        <button className="rounded bg-field-700 px-2 text-sm font-semibold text-white" type="submit">
+        <button className="rounded bg-field-700 px-2 text-sm font-medium text-white" type="button" onClick={go}>
           {t("wizard.field.go")}
         </button>
-      </form>
+      </div>
     </div>
   );
 }
@@ -136,7 +137,7 @@ export default function FieldDrawMap({ geometry, onChange }: { geometry: Polygon
   const { offline, markOffline } = useOfflineBasemap();
   return (
     <div>
-      <MapContainer center={START} zoom={6} className="h-[420px] w-full rounded-2xl sm:h-[520px]" scrollWheelZoom>
+      <MapContainer center={START} zoom={6} className="h-[420px] w-full rounded-lg sm:h-[520px]" scrollWheelZoom>
         <BaseLayers onOffline={markOffline} />
         <Geoman geometry={geometry} onChange={onChange} />
         <GoTo />

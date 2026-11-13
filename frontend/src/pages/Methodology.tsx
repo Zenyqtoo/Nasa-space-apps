@@ -38,7 +38,7 @@ export default function Methodology() {
         <p className="text-lg">{t("methodology.lead")}</p>
         <p className="font-semibold">{t("methodology.counts", data.counts)}</p>
         <p>{t("methodology.evidence_counts", data.counts.by_evidence)}</p>
-        <p className="text-sm text-neutral-700">{t("methodology.audit_link")}</p>
+        <p className="text-sm text-ink-2">{t("methodology.audit_link")}</p>
       </header>
 
       <section className="card space-y-2">
@@ -57,11 +57,11 @@ export default function Methodology() {
             <article key={s.id} className="card space-y-2 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="h3">{s.title}</h3>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${s.state === "active" ? "bg-field-100 text-field-800" : "bg-neutral-200 text-neutral-800"}`}>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${s.state === "active" ? "bg-surface text-field-800" : "bg-surface-sunken text-ink"}`}>
                   {t(`methodology.state.${s.state}`)}
                 </span>
               </div>
-              <p className="text-neutral-700">{s.provider} · <a href={s.url} target="_blank" rel="noreferrer">{s.url}</a>{s.doi && <> · <a href={s.doi} target="_blank" rel="noreferrer">DOI</a></>}</p>
+              <p className="text-ink-2">{s.provider} · <a href={s.url} target="_blank" rel="noreferrer">{s.url}</a>{s.doi && <> · <a href={s.doi} target="_blank" rel="noreferrer">DOI</a></>}</p>
               <dl className="space-y-1.5">
                 {(
                   [
@@ -80,7 +80,7 @@ export default function Methodology() {
                 ))}
                 <div>
                   <dt className="font-semibold">{t("methodology.checked")}</dt>
-                  <dd className="text-neutral-700">{s.checked}</dd>
+                  <dd className="text-ink-2">{s.checked}</dd>
                 </div>
               </dl>
             </article>
@@ -117,7 +117,7 @@ export default function Methodology() {
         </div>
         <div className="card overflow-x-auto p-0">
           <table className="w-full text-sm">
-            <thead className="bg-field-100 text-left">
+            <thead className="bg-surface text-left">
               <tr>
                 <th className="px-3 py-2">{t("methodology.col_rule")}</th>
                 <th className="px-3 py-2">{t("methodology.col_value")}</th>
@@ -137,7 +137,7 @@ export default function Methodology() {
                   <td className="px-3 py-2">
                     {p.source.url.startsWith("http") ? <a href={p.source.url} target="_blank" rel="noreferrer">{p.source.name}</a> : <span>{p.source.name} <span className="text-amber-900">({p.source.url})</span></span>}
                   </td>
-                  <td className="px-3 py-2 text-neutral-700">{p.note}</td>
+                  <td className="px-3 py-2 text-ink-2">{p.note}</td>
                 </tr>
               ))}
             </tbody>

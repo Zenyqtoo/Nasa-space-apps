@@ -39,21 +39,21 @@ function Legend({ meta, lang }: { meta: LayerResponse["meta"]; lang: Lang }) {
     <div className="space-y-2 text-sm">
       <div className="font-semibold">{t("result.map.legend")}: {unitLabel(meta, t)}</div>
       <div className="h-3 w-full max-w-sm rounded" style={{ background: `linear-gradient(to right, ${stops.map((s) => ramp(s)).join(",")})` }} />
-      <div className="flex max-w-sm justify-between text-xs text-neutral-700">
+      <div className="flex max-w-sm justify-between text-xs text-ink-2">
         <span>{fmtNum(meta.legend.min, digits)}</span>
         <span>{fmtNum((meta.legend.min + meta.legend.max) / 2, digits)}</span>
         <span>{fmtNum(meta.legend.max, digits)}</span>
       </div>
       <div className="flex items-center gap-2 text-xs">
-        <span className="inline-block h-3 w-5 border-2 border-dashed border-neutral-500 bg-neutral-200" /> {t("result.map.no_data")}
+        <span className="inline-block h-3 w-5 border-2 border-dashed border-line-strong bg-surface-sunken" /> {t("result.map.no_data")}
         <span className="ml-3 inline-block h-3 w-5 border-[3px] border-wheat-300" /> {t("result.map.field")}
       </div>
       <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-950">
         <b>{t("result.map.resolution")}:</b> {meta.spatial_resolution[lang]}
       </p>
       {meta.fallback_for && <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-950">{t("result.map.sm_fallback")}</p>}
-      {meta.kind === "precip" && <p className="text-neutral-700">{t("result.map.precip_note")}</p>}
-      <p className="text-xs text-neutral-600">{meta.source_title}</p>
+      {meta.kind === "precip" && <p className="text-ink-2">{t("result.map.precip_note")}</p>}
+      <p className="text-xs text-ink-muted">{meta.source_title}</p>
     </div>
   );
 }
@@ -125,7 +125,7 @@ export default function ResultMap({ field, bbox }: { field: Polygon; bbox: [numb
             </button>
           ))}
         </div>
-        <MapContainer center={[51.7, 70.9]} zoom={12} className="h-[420px] w-full rounded-2xl">
+        <MapContainer center={[51.7, 70.9]} zoom={12} className="h-[420px] w-full rounded-lg">
           <BaseLayers onOffline={markOffline} />
           {layer && (
             <GeoJSON

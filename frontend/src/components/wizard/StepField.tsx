@@ -46,11 +46,11 @@ export default function StepField({ geometry, region, onGeometry, onRegion }: Pr
         <div className="card">
           <div className="label">{t("wizard.field.area")}</div>
           {geometry ? (
-            <div className="text-3xl font-bold text-field-800">
+            <div className="text-3xl font-semibold text-field-800">
               {fmtNum(area, 1)} <span className="text-lg">{t("wizard.field.ha")}</span>
             </div>
           ) : (
-            <div className="text-neutral-600">{t("wizard.field.no_field")}</div>
+            <div className="text-ink-muted">{t("wizard.field.no_field")}</div>
           )}
           {area > 50000 && <p className="mt-1 text-sm text-red-800">{t("wizard.field.too_big")}</p>}
           {geometry && (
@@ -74,7 +74,7 @@ export default function StepField({ geometry, region, onGeometry, onRegion }: Pr
           <input
             type="file"
             accept=".geojson,.json,.kml,application/geo+json,application/vnd.google-earth.kml+xml"
-            className="block w-full text-sm file:mr-3 file:min-h-[44px] file:rounded-xl file:border-0 file:bg-field-100 file:px-4 file:font-semibold file:text-field-800"
+            className="block w-full text-sm file:mr-3 file:min-h-[44px] file:rounded-xl file:border-0 file:bg-surface file:px-4 file:font-semibold file:text-field-800"
             onChange={async (e) => {
               const f = e.target.files?.[0];
               if (!f) return;
@@ -86,7 +86,7 @@ export default function StepField({ geometry, region, onGeometry, onRegion }: Pr
           {uploadError && <p className="mt-2 text-sm text-red-800">{t("wizard.field.upload_error")}</p>}
         </label>
       </div>
-      <p className="text-xs text-neutral-600">{t("wizard.field.attribution_note")}</p>
+      <p className="text-xs text-ink-muted">{t("wizard.field.attribution_note")}</p>
     </div>
   );
 }

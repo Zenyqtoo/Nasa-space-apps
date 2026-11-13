@@ -157,9 +157,9 @@ function Results({ request, customCrops, onCustom }: { request: CompareRequest; 
               {[...comparison.variants]
                 .sort((a, b) => Number(b.fits_priority) - Number(a.fits_priority))
                 .map((v) => (
-                  <article key={v.id} className={`card ${v.fits_priority ? "ring-4 ring-wheat-300" : ""}`}>
+                  <article key={v.id} className={`card ${v.fits_priority ? "ring-2 ring-field-300" : ""}`}>
                     <h3 className="h3 mb-2">
-                      {v.fits_priority && "★ "}
+                      
                       {variantName(v, lang, t)}
                     </h3>
                     <ul className="list-disc space-y-1.5 pl-5">
@@ -244,7 +244,7 @@ export default function Wizard() {
               disabled={i === 2 ? !submitted : i === 1 && !fieldOk}
               onClick={() => setStep(i as Step)}
               aria-current={step === i ? "step" : undefined}
-              className={`w-full rounded-xl px-2 py-2 text-left text-sm font-semibold sm:text-base ${step === i ? "bg-field-700 text-white" : "bg-white text-field-800 disabled:text-neutral-400"}`}
+              className={`w-full rounded-xl px-2 py-2 text-left text-sm font-semibold sm:text-base ${step === i ? "bg-field-700 text-white" : "bg-white text-field-800 disabled:text-ink-muted"}`}
             >
               <span className="mr-1">{i + 1}.</span> {t(`wizard.steps.${s}`)}
             </button>
