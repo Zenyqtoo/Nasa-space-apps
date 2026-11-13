@@ -1,3 +1,5 @@
+import i18n from "../i18n";
+
 const NBSP = " ";
 
 export function fmtInt(v: number): string {
@@ -7,7 +9,9 @@ export function fmtInt(v: number): string {
 
 export function fmtNum(v: number | null | undefined, digits = 1): string {
   if (v === null || v === undefined || Number.isNaN(v)) return "—";
-  const s = Math.abs(v).toFixed(digits).replace(".", ",");
+  const fixed = Math.abs(v).toFixed(digits);
+  // десятичная запятая для ru/kk, точка для en
+  const s = i18n.language === "en" ? fixed : fixed.replace(".", ",");
   return (v < 0 ? "−" : "") + s;
 }
 

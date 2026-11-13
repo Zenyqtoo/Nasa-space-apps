@@ -61,7 +61,7 @@ export default function Methodology() {
                   {t(`methodology.state.${s.state}`)}
                 </span>
               </div>
-              <p className="text-ink-2">{s.provider} · <a href={s.url} target="_blank" rel="noreferrer">{s.url}</a>{s.doi && <> · <a href={s.doi} target="_blank" rel="noreferrer">DOI</a></>}</p>
+              <p className="text-ink-2">{s.provider} · <a href={s.url} target="_blank" rel="noreferrer" className="break-all">{s.url}</a>{s.doi && <> · <a href={s.doi} target="_blank" rel="noreferrer">DOI</a></>}</p>
               <dl className="space-y-1.5">
                 {(
                   [

@@ -28,9 +28,11 @@ export interface Ranked {
  */
 export function rank(comparison: Comparison, weights: ScoreWeights): Ranked[] {
   const w = normalize(weights);
+  // при сохранённых весах берём балл сервера как есть — без расхождений округления
+  const saved = sameWeights(weights, comparisonWeights(comparison));
   const rows = comparison.variants.map((v, index) => {
     const contributions = Object.fromEntries(SCORE_KEYS.map((k) => [k, w[k] * v.scores[k].score])) as Record<ScoreKey, number>;
-    const weighted = Math.round(SCORE_KEYS.reduce((s, k) => s + contributions[k], 0) * 100) / 100;
+    const weighted = saved ? v.weighted_score : Math.round(SCORE_KEYS.reduce((s, k) => s + contributions[k], 0) * 100) / 100;
     return { v, index, weighted, rank: 0, contributions };
   });
   const sorted = [...rows].sort((a, b) => b.weighted - a.weighted);

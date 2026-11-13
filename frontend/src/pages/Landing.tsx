@@ -15,7 +15,7 @@ const FEATURES = [
 const DATASETS = ["power", "modis", "smap", "soilgrids"] as const;
 const SHOTS = ["planner", "monitoring", "dashboard"] as const;
 
-/** Снимок настоящего интерфейса (делается скриптом scripts/screenshots.mjs на демо-данных). */
+/** Снимок настоящего интерфейса (делается скриптом scripts/screenshots.cjs на демо-данных). */
 function Shot({ name, className = "" }: { name: string; className?: string }) {
   const { t, i18n } = useTranslation();
   const [ok, setOk] = useState(true);
@@ -23,7 +23,7 @@ function Shot({ name, className = "" }: { name: string; className?: string }) {
   const lang = i18n.language === "en" ? "en" : i18n.language === "kk" ? "kk" : "ru";
   return (
     <img
-      src={`/preview/${name}-${lang}.png`}
+      src={`/preview/${name}-${lang}.jpg`}
       alt={t(`landing2.shot_${name}`)}
       className={`w-full rounded-lg border border-line bg-white shadow-lg ${className}`}
       loading="lazy"

@@ -1,6 +1,8 @@
 """Объяснения простыми словами: шаблоны + сработавшие правила. Без LLM."""
 from __future__ import annotations
 
+import re
+from contextvars import ContextVar
 from functools import lru_cache
 from pathlib import Path
 
@@ -23,14 +25,28 @@ def fmt_int(value: float) -> str:
     return f"{round(value):,}".replace(",", NBSP).replace("-", "−")
 
 
+# Десятичный разделитель для текущего документа: запятая (ru/kk) или точка (en, ставит построитель PDF).
+DECIMAL_POINT: ContextVar[bool] = ContextVar("decimal_point", default=False)
+
+
 def fmt_num(value: float, digits: int = 1) -> str:
     text = f"{value:.{digits}f}".rstrip("0").rstrip(".") if digits else f"{value:.0f}"
-    return text.replace(".", ",").replace("-", "−")
+    return (text if DECIMAL_POINT.get() else text.replace(".", ",")).replace("-", "−")
+
+
+_DECIMAL_COMMA = re.compile(r"(?<=\d),(?=\d)")
+
+
+def _localize(lang: str, params: dict) -> dict:
+    """Числа форматируются с десятичной запятой (ru/kk); в английском тексте — точка."""
+    if lang != "en":
+        return params
+    return {k: _DECIMAL_COMMA.sub(".", v) if isinstance(v, str) else v for k, v in params.items()}
 
 
 def _render(code: str, params_by_lang: dict[str, dict]) -> dict:
     tpl = templates()[code]
-    return {"code": code, **{lang: tpl[lang].format(**params_by_lang[lang]) for lang in LANGS}}
+    return {"code": code, **{lang: tpl[lang].format(**_localize(lang, params_by_lang[lang])) for lang in LANGS}}
 
 
 def years_phrase(n: int) -> dict[str, str]:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Проверка: демо проходит путь «анализ -> сравнение -> слои -> PDF» без сети.
+"""Проверка: демо проходит путь «анализ -> сравнение -> слои -> мониторинг и риски -> PDF/XLSX» без сети.
 
     cd backend && OFFLINE=1 .venv/bin/python ../scripts/offline_check.py
 
@@ -21,9 +21,12 @@ import httpx
 
 from app.data_sources.base import demo_field_record
 from app.report.pdf import build_report
+from app.report.xlsx import build_workbook
 from app.schemas import CompareRequest
 from app.services import layers
+from app.services import monitoring as mon
 from app.services.comparison import run_compare
+from app.services.report_data import gather
 
 
 async def _no_network(*args, **kwargs):
@@ -62,9 +65,18 @@ async def main() -> None:
     for kind in layers.KINDS:
         layer = await layers.build_layer(kind, tuple(a["field"]["bbox"]), None)
         print(f"Слой {kind}: {len(layer['features'])} ячеек, источник {layer['meta']['source']}, дата {layer['meta']['date']}")
-    for lang in ("ru", "kk"):
-        pdf = build_report(comparison, a, lang=lang)
-        print(f"PDF {lang}: {len(pdf) // 1024} КБ")
+    m = await mon.monitoring(demo["geometry"], demo["region"], None, None)
+    print(f"Мониторинг {m['range']['start']}…{m['range']['end']}: {len(m['climate']['months'])} мес., "
+          f"{len(m['ndvi']['composites'])} композитов NDVI, {len(m['soil_moisture']['days'])} дней SMAP")
+    r = await mon.risk(demo["geometry"], demo["region"])
+    print(f"Риски сезона {r['latest_season']}: итог {r['overall']}; " + ", ".join(f"{i['id']}={i['level']}" for i in r["items"]))
+    s = await mon.suitability(demo["geometry"], demo["region"], demo["history"])
+    print("Пригодность: " + ", ".join(f"{c['crop']}={c['category']}" for c in s["crops"]))
+    data = await gather(req, {"name": "offline-check"})
+    for lang in ("ru", "kk", "en"):
+        pdf = build_report(data, lang=lang)
+        xlsx = build_workbook(data, lang=lang)
+        print(f"PDF {lang}: {len(pdf) // 1024} КБ, XLSX {lang}: {len(xlsx) // 1024} КБ")
     print("OK: демо работает без сети")
 
 

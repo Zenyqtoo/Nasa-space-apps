@@ -33,7 +33,7 @@ from reportlab.platypus import (
 
 from ..data_sources import modis as modis_mod
 from ..data_sources.registry import source_catalog
-from ..model.explain import NBSP, fmt_int, fmt_num, years_phrase
+from ..model.explain import DECIMAL_POINT, NBSP, fmt_int, fmt_num, years_phrase
 from ..model.rules import get_rules
 from . import charts
 from .fonts import FONT, FONT_BOLD, register_fonts
@@ -146,7 +146,15 @@ def _name(v: dict, lang: str, t: dict) -> str:
 
 def build_report(data, *, lang: str = "ru", selected_variant_id: str | None = None, farm_name: str = "",
                  today: date | None = None) -> bytes:
-    """data — services.report_data.ReportData."""
+    """data — services.report_data.ReportData. В английском отчёте десятичный разделитель — точка."""
+    token = DECIMAL_POINT.set(lang == "en")
+    try:
+        return _build_report(data, lang=lang, selected_variant_id=selected_variant_id, farm_name=farm_name, today=today)
+    finally:
+        DECIMAL_POINT.reset(token)
+
+
+def _build_report(data, *, lang: str, selected_variant_id: str | None, farm_name: str, today: date | None) -> bytes:
     register_fonts()
     rules = get_rules()
     t = strings(lang)

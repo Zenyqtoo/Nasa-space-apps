@@ -64,6 +64,7 @@ export default function Overview({ field, overview, error }: { field: FieldRecor
         <section className="panel">
           <div className="panel-head"><h2 className="h3">{t("overview.soil_title")}</h2></div>
           <div className="panel-body space-y-3">
+            <div className="overflow-x-auto">
             <table className="table">
               <thead>
                 <tr>
@@ -82,6 +83,7 @@ export default function Overview({ field, overview, error }: { field: FieldRecor
                 <tr><td>{t("overview.awc")}</td><td className="num">—</td><td className="num">{a?.soil.summary ? `${fmtInt(a.soil.summary.awc_mm)} ${t("units.mm")}` : "—"}</td></tr>
               </tbody>
             </table>
+            </div>
             <p className="text-xs text-ink-muted">{t("overview.soil_note")}{userSoil.survey_year ? ` ${t("overview.survey", { year: userSoil.survey_year })}` : ""}</p>
           </div>
         </section>

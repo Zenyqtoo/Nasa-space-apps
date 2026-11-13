@@ -12,11 +12,12 @@ export function PublicHeader() {
     `hidden rounded-md px-2.5 py-1.5 text-sm font-medium no-underline md:inline-block ${isActive ? "text-field-800" : "text-ink-2 hover:text-ink"}`;
   return (
     <header className="sticky top-0 z-[1001] border-b border-line bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
         <Link to="/" className="no-underline">
-          <Logo />
+          <span className="sm:hidden"><Logo compact /></span>
+          <span className="hidden sm:inline"><Logo /></span>
         </Link>
-        <nav className="ml-4 flex items-center gap-1" aria-label={t("nav.main")}>
+        <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label={t("nav.main")}>
           <NavLink to="/nasa" className={link}>{t("nav.nasa")}</NavLink>
           <NavLink to="/methodology" className={link}>{t("nav.methodology")}</NavLink>
           <NavLink to="/about" className={link}>{t("nav.about")}</NavLink>
