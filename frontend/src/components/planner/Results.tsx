@@ -10,7 +10,6 @@ import ScoreRow from "../results/ScoreRow";
 import StressTest from "../results/StressTest";
 import { variantName } from "../results/VariantCards";
 import { KindBadge, SectionTitle } from "../ui/ui";
-import { anyBareSoilMetrics, bareSoilLine, bareSoilMetrics } from "./bareSoilMetrics";
 import { rank, SCORE_KEYS, type Ranked } from "./weights";
 
 const LETTERS = "ABCDEF";
@@ -83,10 +82,6 @@ function Recommendation({ comparison, ranked, customWeights }: { comparison: Com
             {v.explanation.map((e, i) => (
               <li key={`${e.code}-${i}`} className={e.code === "assumptions" ? "text-amber-900" : ""}>{e[lang]}</li>
             ))}
-            {(() => {
-              const line = bareSoilLine(v, t);
-              return line ? <li>{line}</li> : null;
-            })()}
           </ul>
         </div>
         <div className="space-y-4 text-sm">
@@ -136,7 +131,6 @@ function ComparisonTable({ comparison, ranked }: { comparison: Comparison; ranke
     </tr>
   );
   const kzt = (v: number) => `${fmtInt(v)}`;
-  const showBareSoil = anyBareSoilMetrics(comparison.variants);
   return (
     <div className="panel overflow-x-auto">
       <table className="table min-w-[760px]">
@@ -174,14 +168,6 @@ function ComparisonTable({ comparison, ranked }: { comparison: Comparison; ranke
           {row(t("planner.water_deficit"), (r) => fmtNum(r.v.totals.water_deficit_mean_mm, 0), { hint: t("units.mm") })}
           {row(t("planner.drought_loss"), (r) => `${fmtNum(r.v.totals.drought_loss_pct, 1)} %`, { hint: t("planner.drought_loss_hint", { year: comparison.conditions.dry_year }) })}
           {row(t("planner.monoculture"), (r) => r.v.totals.monoculture_years)}
-          {showBareSoil && row(t("planner.bare_days_per_year"), (r) => {
-            const m = bareSoilMetrics(r.v);
-            return m ? fmtInt(m.days) : "—";
-          }, { hint: t("planner.bare_days_hint"), kind: "simulation" })}
-          {showBareSoil && row(t("planner.exposure_index"), (r) => {
-            const m = bareSoilMetrics(r.v);
-            return m ? fmtNum(m.exposure, 2) : "—";
-          }, { hint: t("planner.exposure_index_hint"), kind: "simulation" })}
           {row(t("planner.confidence"), (r) => t(`planner.conf.${r.v.confidence.level}`))}
           {row(t("planner.assumptions"), (r) => `${r.v.assumptions_used} / ${r.v.params_used}`, { hint: t("planner.assumptions_hint") })}
         </tbody>
@@ -204,10 +190,6 @@ function ScoreDetails({ comparison }: { comparison: Comparison }) {
           <div className="space-y-2.5">
             {SCORE_KEYS.map((k) => <ScoreRow key={k} k={k} score={v.scores[k]} />)}
           </div>
-          {(() => {
-            const line = bareSoilLine(v, t);
-            return line ? <p className="mt-3 border-t border-line pt-3 text-sm text-ink-2">{line}</p> : null;
-          })()}
         </div>
       ))}
     </div>

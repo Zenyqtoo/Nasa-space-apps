@@ -313,10 +313,6 @@ export interface VariantResult {
   explanation: ({ code: string } & I18nText)[];
   confidence: Confidence;
   economics: Economics;
-  /** Mean bare-soil days per plan year (rotation model + field climate). */
-  bare_days_per_year?: number;
-  /** 0–1 erosion exposure index when soil is bare, dry and windy. */
-  exposure_index?: number;
 }
 
 export interface Comparison {
