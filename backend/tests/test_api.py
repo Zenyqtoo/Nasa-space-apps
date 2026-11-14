@@ -18,9 +18,11 @@ def client():
     settings = get_settings()
     old = settings.offline
     settings.offline = True
-    with TestClient(app) as c:
-        yield c
-    settings.offline = old
+    try:  # вернуть настройку, даже если запуск приложения упал: иначе следующие модули тестов идут в OFFLINE
+        with TestClient(app) as c:
+            yield c
+    finally:
+        settings.offline = old
 
 
 @pytest.fixture(scope="module")

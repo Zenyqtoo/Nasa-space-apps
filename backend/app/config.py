@@ -12,8 +12,14 @@ APP_DIR = Path(__file__).resolve().parent
 
 
 class Settings(BaseSettings):
+    # env_ignore_empty: пустое значение (`DB_PATH=` в .env, скопированном из .env.example) значит «не задано»
+    # и даёт значение по умолчанию. Иначе DB_PATH= превращается в Path("") == Path(".") — истинное значение,
+    # и SQLite пытается открыть каталог (sqlite3.OperationalError: unable to open database file).
     model_config = SettingsConfigDict(
-        env_file=(REPO_DIR / ".env", BACKEND_DIR / ".env"), env_file_encoding="utf-8", extra="ignore"
+        env_file=(REPO_DIR / ".env", BACKEND_DIR / ".env"),
+        env_file_encoding="utf-8",
+        env_ignore_empty=True,
+        extra="ignore",
     )
 
     data_dir: Path = REPO_DIR / "data"
