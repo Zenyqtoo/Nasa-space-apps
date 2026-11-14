@@ -11,7 +11,9 @@
   3. Сверяет водный индекс модели с независимым наблюдением — максимумом NDVI MODIS по годам.
   4. Анализ чувствительности: как меняются доход и ранжирование вариантов при правдоподобных
      диапазонах ключевых допущений (цены, эффекты предшественников, потребность во влаге, затраты).
-  5. «Часы голой почвы»: результат при каждом пороге NDVI из erosion.yaml (bare_soil.sensitivity_values).
+  5. «Часы голой почвы» на обоих демо-полях: результат при каждом пороге NDVI из erosion.yaml
+     (bare_soil.sensitivity_values), какие месяцы ждут загрузки MODIS межсезонья и сколько месяцев
+     посчитано по среднему NDVI поля (proxy).
 
 Пишет docs/audit/audit_results.json и docs/audit/AUDIT_TABLES.md. Результат детерминирован:
 повторный запуск на тех же данных даёт те же файлы (кроме даты запуска).
@@ -336,30 +338,59 @@ def patch_erosion(rules, group, key, value):
     return dataclasses.replace(rules, erosion={**rules.erosion, group: g})
 
 
-def bare_soil_sensitivity(rules, geometry: dict) -> list[dict]:
-    """Ответ /bare-soil для демо-поля при каждом пороге NDVI из bare_soil.sensitivity_values.
-    Пока расчёт не реализован (задача 4), сервис отдаёт status: missing — это и попадает в отчёт."""
+MONTH_RU = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"]
+
+
+def _bare_soil_case(body: dict, t: float, current: float) -> dict:
+    months = [m for y in body["years"] for m in y["months"]]
+    ok = [m for m in months if m["state"] == "ok"]
+    missing = [m for m in months if m["state"] == "missing"]
+    reasons: dict[str, int] = {}
+    for m in missing:
+        reasons[m["missing_reason"]] = reasons.get(m["missing_reason"], 0) + 1
+    pending = {mo: sum(1 for y in body["years"] for m in y["months"]
+                       if m["month"] == mo and m["missing_reason"] == "ndvi_pending_fetch") for mo in range(1, 13)}
+    proxy = next((w["params"]["months"] for w in body["warnings"] if w["code"] == "ndvi_field_mean_proxy"), 0)
+    known = sum(m["known_days"] for m in ok)
+    joint = sum(m["joint_days"] for m in ok)
+    return {
+        "ndvi_max": t,
+        "is_rule_value": t == current,
+        "status": body["status"],
+        "months_ok": len(ok),
+        "months_partial": sum(m["quality"] == "partial" for m in ok),
+        "months_snow": sum(m["state"] == "snow" for m in months),
+        "months_missing": len(missing),
+        "months_total": len(months),
+        "missing_by_reason": dict(sorted(reasons.items())),
+        "pending_fetch_by_month": {mo: n for mo, n in pending.items() if n},
+        "proxy_months": proxy,
+        "bare_days": sum(m["bare_days"] for m in ok),
+        "joint_days": joint,
+        "known_days": known,
+        "pooled_exposure": round(joint / known, 4) if known else None,
+        "top_months": body["headline"]["top_months"],
+        "max_median_exposure": body["headline"]["max_median_exposure"],
+        "climatology_median": {c["month"]: c["exposure_median"] for c in body["climatology"]},
+        "cover_crop_windows": [{k: w[k] for k in ("start", "end", "uncertainty")} for w in body["cover_crop_windows"]],
+        "effective_thresholds": body["effective_thresholds"],
+    }
+
+
+async def bare_soil_sensitivity(rules) -> list[dict]:
+    """Ответ /bare-soil для обоих демо-полей при каждом пороге NDVI из bare_soil.sensitivity_values."""
+    from app.data_sources.base import demo_field_records
     from app.services.bare_soil import bare_soil
 
     current = rules.erosion["bare_soil"]["ndvi_max"].value
     out = []
-    for t in rules.erosion["bare_soil"]["sensitivity_values"]:
-        body = bare_soil(0, geometry, *BARE_SOIL_PERIOD, rules=patch_erosion(rules, "bare_soil", "ndvi_max", t))
-        months = [m for y in body["years"] for m in y["months"]]
-        ok = [m for m in months if m["state"] == "ok"]
-        out.append({
-            "ndvi_max": t,
-            "is_rule_value": t == current,
-            "status": body["status"],
-            "months_ok": len(ok),
-            "months_snow": sum(m["state"] == "snow" for m in months),
-            "months_total": len(months),
-            "bare_days": sum(m["bare_days"] or 0 for m in ok),
-            "joint_days": sum(m["joint_days"] or 0 for m in ok),
-            "top_months": body["headline"]["top_months"],
-            "max_median_exposure": body["headline"]["max_median_exposure"],
-            "climatology_median": {c["month"]: c["exposure_median"] for c in body["climatology"]},
-        })
+    for rec in demo_field_records():
+        cases = []
+        for t in rules.erosion["bare_soil"]["sensitivity_values"]:
+            body = await bare_soil(0, rec["geometry"], *BARE_SOIL_PERIOD,
+                                   rules=patch_erosion(rules, "bare_soil", "ndvi_max", t), start_jobs=False)
+            cases.append(_bare_soil_case(body, t, current))
+        out.append({"id": rec["id"], "name": rec["name"]["ru"], "area_ha": rec.get("area_ha"), "cases": cases})
     return out
 
 
@@ -440,7 +471,7 @@ async def main() -> None:
     fc = FieldConditions(**cond)
     sens = sensitivity(rules, fc, history)
     hz = horizon_effect(rules, fc, history)
-    bs = bare_soil_sensitivity(rules, demo["geometry"])
+    bs = await bare_soil_sensitivity(rules)
 
     result = {
         "run_date": date.today().isoformat(),
@@ -455,7 +486,7 @@ async def main() -> None:
         "hindcast": hc,
         "sensitivity": sens,
         "horizon_effect": hz,
-        "bare_soil_ndvi_sensitivity": {"period": list(BARE_SOIL_PERIOD), "cases": bs},
+        "bare_soil_ndvi_sensitivity": {"period": list(BARE_SOIL_PERIOD), "fields": bs},
         "variants": {x["id"]: {"crops": x["crops"], "totals": x["totals"],
                                "years": [{k: y[k] for k in ("year", "crop", "yield_t_ha", "yield_dry_t_ha", "income_kzt_ha",
                                                              "moisture_coef", "predecessor_effect_pct", "monoculture_penalty_pct")}
@@ -475,9 +506,12 @@ async def main() -> None:
         print(("OK  " if c["ok"] else "FAIL") + f" {c['check']}: {c['detail']}")
     print(f"NDVI ~ осадки: Pearson r = {nd['pearson_precip_ndvi'][0]} (p = {nd['pearson_precip_ndvi'][1]}); "
           f"засушливые годы NDVI {nd['dry_vs_other']['dry_mean']} против {nd['dry_vs_other']['other_mean']}")
-    for c in bs:
-        print(f"Часы голой почвы, NDVI < {c['ndvi_max']:.2f}: status {c['status']}, месяцев посчитано "
-              f"{c['months_ok']} из {c['months_total']}, макс. медиана exposure {c['max_median_exposure']}")
+    for f in bs:
+        for c in f["cases"]:
+            print(f"Часы голой почвы, {f['id']}, NDVI < {c['ndvi_max']:.2f}: status {c['status']}, посчитано "
+                  f"{c['months_ok']} из {c['months_total']} мес. (снег {c['months_snow']}, ждут MODIS межсезонья "
+                  f"{c['missing_by_reason'].get('ndvi_pending_fetch', 0)}, по среднему NDVI {c['proxy_months']}), "
+                  f"макс. медиана exposure {c['max_median_exposure']}")
     print(f"Записано: {OUT / 'audit_results.json'}, {OUT / 'AUDIT_TABLES.md'}")
     if failed:
         raise SystemExit(f"{len(failed)} проверок не прошли")
@@ -539,23 +573,65 @@ def write_markdown(r: dict, rules) -> None:
           "| Вариант | 4 года | 5 лет | Культуры 5-летнего плана |", "|---|---|---|---|"]
     for k in names:
         L.append(f"| {names[k]} | {fmt(hz[4][k]['per_year'])} | {fmt(hz[5][k]['per_year'])} | {' → '.join(hz[5][k]['crops'])} |")
-    bs = r["bare_soil_ndvi_sensitivity"]
-    p0, p1 = bs["period"]
+    bsr = r["bare_soil_ndvi_sensitivity"]
+    p0, p1 = bsr["period"]
+
+    def num(x, digits=2):
+        return "—" if x is None else f"{x:.{digits}f}".replace(".", ",")
+
     L += ["", "## «Часы голой почвы»: чувствительность к порогу NDVI", "",
-          f"Демо-поле, {p0}–{p1}. Класс — «нет зелёного покрова (открытая почва или стерня)»; exposure — верхняя оценка "
-          "риска там, где стерня оставлена стоять. Порог 0,30 в `erosion.yaml` подобран по этим же демо-полям "
-          "(Шортанды, Костанай), поэтому сравнение порогов здесь — не независимая проверка.", "",
-          "| Порог NDVI | В правилах | Статус ответа | Посчитано месяцев | Снежных | Дней без покрова | Опасных дней | "
-          "Самые опасные месяцы | Макс. медиана exposure |", "|---|---|---|---|---|---|---|---|---|"]
-    for c in bs["cases"]:
-        top = ", ".join(str(m) for m in c["top_months"]) or "—"
-        mx = "—" if c["max_median_exposure"] is None else f"{c['max_median_exposure']:.2f}".replace(".", ",")
-        days = (str(c["bare_days"]), str(c["joint_days"])) if c["months_ok"] else ("—", "—")
-        L.append(f"| < {c['ndvi_max']:.2f} | {'да' if c['is_rule_value'] else 'нет'} | {c['status']} | ".replace(".", ",") +
-                 f"{c['months_ok']} из {c['months_total']} | {c['months_snow']} | {days[0]} | {days[1]} | {top} | {mx} |")
-    if all(c["status"] == "missing" for c in bs["cases"]):
-        L += ["", "Расчёт «Часов голой почвы» ещё не реализован (задача 4): сервис отвечает `status: missing`, "
-              "поэтому числа пустые. Таблица заполнится без правки этого скрипта."]
+          f"Оба демо-поля, {p0}–{p1}, `OFFLINE=1` (только `data/demo`). Класс — «нет зелёного покрова (открытая почва "
+          "или стерня)»; exposure — верхняя оценка риска там, где стерня оставлена стоять. "
+          "exposure месяца = joint_days / known_days (known_days — дни, когда известны все три условия). "
+          "Порог 0,30 в `erosion.yaml` подобран по этим же демо-полям, поэтому сравнение порогов здесь — "
+          "не независимая проверка.", "",
+          "| Поле | Порог NDVI | В правилах | Статус | Посчитано мес. | из них partial | Снег | Нет данных | "
+          "Ждут MODIS межсезонья | По среднему NDVI | Дней без покрова | Опасных дней | Известных дней | "
+          "Доля опасных (все месяцы) | Самые опасные месяцы | Макс. медиана exposure |",
+          "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    for f in bsr["fields"]:
+        for c in f["cases"]:
+            top = ", ".join(MONTH_RU[m - 1] for m in c["top_months"]) or "—"
+            L.append(f"| {f['name']} | < {num(c['ndvi_max'])} | {'да' if c['is_rule_value'] else 'нет'} | {c['status']} | "
+                     f"{c['months_ok']} из {c['months_total']} | {c['months_partial']} | {c['months_snow']} | "
+                     f"{c['months_missing']} | {c['missing_by_reason'].get('ndvi_pending_fetch', 0)} | {c['proxy_months']} | "
+                     f"{c['bare_days']} | {c['joint_days']} | {c['known_days']} | {num(c['pooled_exposure'], 3)} | {top} | "
+                     f"{num(c['max_median_exposure'])} |")
+    L += ["", "Медиана exposure по месяцам (только месяцы, посчитанные не меньше чем в `climatology.min_years` годах):", "",
+          "| Поле | Порог NDVI | " + " | ".join(MONTH_RU) + " |", "|---|---|" + "---|" * 12]
+    for f in bsr["fields"]:
+        for c in f["cases"]:
+            med = c["climatology_median"]
+            L.append(f"| {f['name']} | < {num(c['ndvi_max'])} | " +
+                     " | ".join(num(med.get(m, med.get(str(m)))) for m in range(1, 13)) + " |")
+    L += ["", "### Месяцы, которые ждут загрузки MODIS межсезонья (`missing_reason: ndvi_pending_fetch`)", "",
+          "Весенние (DOY 81–113, ≈ 22 марта – 8 мая) и осенние (DOY 289–305, ≈ 16 октября – 16 ноября) композиты MOD13Q1 "
+          "в `data/demo` ещё не скачаны (`modis_shoulder`, TODO в `docs/HACKATHON_LOG.md`). Пока их нет, эти месяцы — "
+          "`state: missing`, а не 0. Число лет периода, в которых месяц не посчитан по этой причине:", "",
+          "| Поле | " + " | ".join(MONTH_RU) + " |", "|---|" + "---|" * 12]
+    for f in bsr["fields"]:
+        c = next(x for x in f["cases"] if x["is_rule_value"])
+        pend = {int(k): n for k, n in c["pending_fetch_by_month"].items()}
+        L.append(f"| {f['name']} | " + " | ".join(str(pend.get(m, 0) or "") for m in range(1, 13)) + " |")
+    L += ["", "Все причины `missing` (порог из правил): " + "; ".join(
+        f"{f['name']} — " + (", ".join(f"{k}: {n}" for k, n in next(x for x in f["cases"] if x["is_rule_value"])
+                                       ["missing_by_reason"].items()) or "нет") for f in bsr["fields"]) + ".",
+          "`future` — месяцы после последнего дня POWER, `ndvi_not_covered` — зима вне окон MODIS без снежного покрова "
+          "(меньше половины дней со снегом), `ndvi_gap` — нет годного композита (облака).", "",
+          "### Месяцы, где «нет зелёного покрова» определено по среднему NDVI поля (proxy)", "",
+          "В `data/demo/modis.json` пиксельные растры есть только за 2021–2026 гг., квантилей NDVI (`ndvi_q`) нет: для "
+          "2015–2020 гг. доля пикселей ниже порога недоступна, и день считается «без покрова», если ниже порога среднее "
+          "NDVI поля. Такие месяцы — `quality: partial`, предупреждение `ndvi_field_mean_proxy`. После перезагрузки "
+          "MODIS (TODO в журнале) proxy исчезнет.", "",
+          "| Поле | Порог NDVI | Месяцев по среднему NDVI |", "|---|---|---|"]
+    for f in bsr["fields"]:
+        for c in f["cases"]:
+            L.append(f"| {f['name']} | < {num(c['ndvi_max'])} | {c['proxy_months']} |")
+    L += ["", "Пороги, применённые к полям (порог из правил): " + "; ".join(
+        (lambda eff: f"{f['name']} — SMAP < {num(eff['smap_m3m3'], 3)} м³/м³ ({eff['smap_basis']}), GWETTOP < "
+                     f"{num(eff['gwettop'], 2)} ({eff['gwettop_basis']}, {eff['gwettop_pairs']} общих дней), "
+                     f"медианы заморозков {eff['last_frost_spring']} / {eff['first_frost_autumn']}")
+        (next(x for x in f["cases"] if x["is_rule_value"])["effective_thresholds"]) for f in bsr["fields"]) + "."]
     (OUT / "AUDIT_TABLES.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 
