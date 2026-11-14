@@ -2,6 +2,7 @@ import { ArrowRight, BarChart3, CloudSun, FileDown, Map as MapIcon, Scale, Shiel
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import TelegramBotCard from "../components/common/TelegramBotCard";
 import PublicLayout from "../components/layout/PublicLayout";
 
 const FEATURES = [
@@ -63,6 +64,12 @@ export default function Landing() {
               <p className="mt-1 text-sm leading-relaxed text-ink-muted">{t(`landing2.f_${key}_text`)}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="border-y border-line bg-surface">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+          <TelegramBotCard />
         </div>
       </section>
 
