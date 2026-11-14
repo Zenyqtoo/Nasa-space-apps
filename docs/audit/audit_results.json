@@ -1,5 +1,5 @@
 {
- "run_date": "2026-11-12",
+ "run_date": "2026-11-14",
  "start_year": 2027,
  "field": {
   "area_ha": 313.5,
@@ -783,6 +783,40 @@
    }
   }
  },
+ "bare_soil_ndvi_sensitivity": {
+  "period": [
+   2015,
+   2025
+  ],
+  "cases": [
+   {
+    "ndvi_max": 0.25,
+    "is_rule_value": false,
+    "status": "missing",
+    "months_ok": 0,
+    "months_snow": 0,
+    "months_total": 132,
+    "bare_days": 0,
+    "joint_days": 0,
+    "top_months": [],
+    "max_median_exposure": null,
+    "climatology_median": {}
+   },
+   {
+    "ndvi_max": 0.3,
+    "is_rule_value": true,
+    "status": "missing",
+    "months_ok": 0,
+    "months_snow": 0,
+    "months_total": 132,
+    "bare_days": 0,
+    "joint_days": 0,
+    "top_months": [],
+    "max_median_exposure": null,
+    "climatology_median": {}
+   }
+  ]
+ },
  "variants": {
   "wheat_mono": {
    "crops": [
@@ -1042,13 +1076,13 @@
   }
  },
  "rule_counts": {
-  "total": 88,
-  "verified": 20,
+  "total": 118,
+  "verified": 22,
   "by_evidence": {
    "literature": 16,
-   "agronomist_review": 31,
-   "preliminary": 30,
-   "definition": 11
+   "agronomist_review": 35,
+   "preliminary": 54,
+   "definition": 13
   }
  }
 }

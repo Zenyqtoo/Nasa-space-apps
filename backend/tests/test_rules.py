@@ -116,3 +116,75 @@ def test_loader_rejects_unknown_source_and_status(tmp_path):
     (d / "crops.yaml").write_text(text.replace("source: stat_gov_kz, status: assumption", "source: stat_gov_kz, status: sure", 1), encoding="utf-8")
     with pytest.raises(RulesError, match="status"):
         load_rules(d)
+
+
+# ---------------------------------------------------------------- erosion.yaml («Часы голой почвы»)
+EXCERPT_ONLY = "проверено только по выдержке, полный текст не прочитан"
+
+
+def test_erosion_thresholds_are_the_agreed_values(rules):
+    e = rules.erosion
+    ndvi = e["bare_soil"]["ndvi_max"]
+    assert (ndvi.value, ndvi.range, ndvi.status, ndvi.evidence) == (0.30, (0.20, 0.30), "assumption", "agronomist_review")
+    assert e["bare_soil"]["sensitivity_values"] == [0.25, 0.30]
+    wind = e["erosive_wind"]
+    assert (wind["speed_ms"].value, wind["reference_height_m"], wind["power_parameter"]) == (5.0, 2, "WS2M_MAX")
+    assert wind["speed_ms"].source_id == "rweq_1998" and wind["context_range_10m_ms"] == [6, 10]
+    assert "Зайцев" in wind["speed_ms"].note and "ru-ecology.info" in wind["speed_ms"].note
+    dry = e["dry_topsoil"]
+    assert dry["smap_wilting_point_factor"].source_id == "chepil_1956"
+    assert dry["gwettop_method"] == "cdf_match" and dry["gwettop_month_quality"] == "partial"
+    assert dry["gwettop_fallback"].evidence == "preliminary"
+    assert e["snow"]["modis_reliability_snow"].value == 2
+    # Зайцева упомянута только в пояснении: источника, на который ссылалось бы значение, нет
+    assert not any("zaitseva" in sid or "ru_ecology" in sid for sid in rules.sources)
+
+
+def test_erosion_params_are_in_the_catalogue(rules):
+    paths = {p.path for p in rules.all_params()}
+    assert {"erosion.bare_soil.ndvi_max", "erosion.erosive_wind.speed_ms", "erosion.dry_topsoil.smap_wilting_point_factor",
+            "erosion.snow.power_snodp_min_cm"} <= paths
+
+
+def test_literature_used_for_erosion_is_marked_excerpt_only(rules):
+    """Источники, проверенные только по выдержке, должны говорить это в note — и ни одно правило на них не verified."""
+    excerpt = {sid for sid, s in rules.sources.items() if EXCERPT_ONLY in str(s.get("note", "")).lower()}
+    assert {"rweq_1998", "chepil_1956", "sobrino_2004", "lamb_2022", "reichle_koster_2004"} <= excerpt
+    for p in rules.all_params():
+        if p.source_id in excerpt:
+            assert p.status == "assumption", p.path
+
+
+def _replace(d, name, old, new):
+    text = (d / name).read_text(encoding="utf-8")
+    assert old in text, old
+    (d / name).write_text(text.replace(old, new, 1), encoding="utf-8")
+
+
+def test_loader_requires_erosion_file_and_groups(tmp_path):
+    d = _copy_rules(tmp_path)
+    _replace(d, "erosion.yaml", "\nsnow:\n", "\nsnow_renamed:\n")
+    with pytest.raises(RulesError, match="erosion.snow"):
+        load_rules(d)
+    (d / "erosion.yaml").unlink()
+    with pytest.raises(FileNotFoundError):
+        load_rules(d)
+
+
+@pytest.mark.parametrize(("old", "new", "match"), [
+    ("value: 0.30, range: [0.20, 0.30]", "value: 0.35, range: [0.20, 0.30]", "outside range"),
+    ("range: [0.20, 0.30]", "range: [0.30, 0.20]", "exceeds upper bound"),
+    ("range: [0.20, 0.30]", "range: [0.20]", "two numbers"),
+    ("reference_height_m: 2", "reference_height_m: 3", "reference_height_m"),
+    ("power_parameter: WS2M_MAX", "power_parameter: WS10M_MAX", "power_parameter"),
+    ("sensitivity_values: [0.25, 0.30]", "sensitivity_values: [0.25]", "sensitivity_values"),
+    ("gwettop_method: cdf_match", "gwettop_method: linear", "gwettop_method"),
+    ("{value: 0.70, range: [0.70, 0.79]", "{value: 1.5, range: [0.70, 1.79]", "gwettop_fallback"),
+    ("{value: 2, unit:", "{value: 7, unit:", "pixel_reliability"),
+    ("ndvi_bare: bare_soil.ndvi_max", "ndvi_bare: bare_soil.ndvi_missing", "contract_thresholds"),
+])
+def test_loader_rejects_bad_erosion_values(tmp_path, old, new, match):
+    d = _copy_rules(tmp_path)
+    _replace(d, "erosion.yaml", old, new)
+    with pytest.raises(RulesError, match=match):
+        load_rules(d)

@@ -11,6 +11,7 @@
   3. Сверяет водный индекс модели с независимым наблюдением — максимумом NDVI MODIS по годам.
   4. Анализ чувствительности: как меняются доход и ранжирование вариантов при правдоподобных
      диапазонах ключевых допущений (цены, эффекты предшественников, потребность во влаге, затраты).
+  5. «Часы голой почвы»: результат при каждом пороге NDVI из erosion.yaml (bare_soil.sensitivity_values).
 
 Пишет docs/audit/audit_results.json и docs/audit/AUDIT_TABLES.md. Результат детерминирован:
 повторный запуск на тех же данных даёт те же файлы (кроме даты запуска).
@@ -44,6 +45,7 @@ DEMO = ROOT / "data" / "demo"
 RULES = ROOT / "backend" / "app" / "rules"
 OUT = ROOT / "docs" / "audit"
 START_YEAR = 2027  # фиксируем год начала плана, чтобы результат не зависел от даты запуска
+BARE_SOIL_PERIOD = (2015, 2025)  # «Часы голой почвы»: фиксированный период из полных лет
 TOL = 1e-6
 
 
@@ -327,6 +329,40 @@ def sensitivity(rules, cond, history) -> list[dict]:
     return out
 
 
+# ---------------------------------------------------------------- 5. «Часы голой почвы»
+def patch_erosion(rules, group, key, value):
+    g = dict(rules.erosion[group])
+    g[key] = dataclasses.replace(g[key], value=value)
+    return dataclasses.replace(rules, erosion={**rules.erosion, group: g})
+
+
+def bare_soil_sensitivity(rules, geometry: dict) -> list[dict]:
+    """Ответ /bare-soil для демо-поля при каждом пороге NDVI из bare_soil.sensitivity_values.
+    Пока расчёт не реализован (задача 4), сервис отдаёт status: missing — это и попадает в отчёт."""
+    from app.services.bare_soil import bare_soil
+
+    current = rules.erosion["bare_soil"]["ndvi_max"].value
+    out = []
+    for t in rules.erosion["bare_soil"]["sensitivity_values"]:
+        body = bare_soil(0, geometry, *BARE_SOIL_PERIOD, rules=patch_erosion(rules, "bare_soil", "ndvi_max", t))
+        months = [m for y in body["years"] for m in y["months"]]
+        ok = [m for m in months if m["state"] == "ok"]
+        out.append({
+            "ndvi_max": t,
+            "is_rule_value": t == current,
+            "status": body["status"],
+            "months_ok": len(ok),
+            "months_snow": sum(m["state"] == "snow" for m in months),
+            "months_total": len(months),
+            "bare_days": sum(m["bare_days"] or 0 for m in ok),
+            "joint_days": sum(m["joint_days"] or 0 for m in ok),
+            "top_months": body["headline"]["top_months"],
+            "max_median_exposure": body["headline"]["max_median_exposure"],
+            "climatology_median": {c["month"]: c["exposure_median"] for c in body["climatology"]},
+        })
+    return out
+
+
 # ---------------------------------------------------------------- main
 async def main() -> None:
     rules = get_rules()
@@ -404,6 +440,7 @@ async def main() -> None:
     fc = FieldConditions(**cond)
     sens = sensitivity(rules, fc, history)
     hz = horizon_effect(rules, fc, history)
+    bs = bare_soil_sensitivity(rules, demo["geometry"])
 
     result = {
         "run_date": date.today().isoformat(),
@@ -418,6 +455,7 @@ async def main() -> None:
         "hindcast": hc,
         "sensitivity": sens,
         "horizon_effect": hz,
+        "bare_soil_ndvi_sensitivity": {"period": list(BARE_SOIL_PERIOD), "cases": bs},
         "variants": {x["id"]: {"crops": x["crops"], "totals": x["totals"],
                                "years": [{k: y[k] for k in ("year", "crop", "yield_t_ha", "yield_dry_t_ha", "income_kzt_ha",
                                                              "moisture_coef", "predecessor_effect_pct", "monoculture_penalty_pct")}
@@ -437,6 +475,9 @@ async def main() -> None:
         print(("OK  " if c["ok"] else "FAIL") + f" {c['check']}: {c['detail']}")
     print(f"NDVI ~ осадки: Pearson r = {nd['pearson_precip_ndvi'][0]} (p = {nd['pearson_precip_ndvi'][1]}); "
           f"засушливые годы NDVI {nd['dry_vs_other']['dry_mean']} против {nd['dry_vs_other']['other_mean']}")
+    for c in bs:
+        print(f"Часы голой почвы, NDVI < {c['ndvi_max']:.2f}: status {c['status']}, месяцев посчитано "
+              f"{c['months_ok']} из {c['months_total']}, макс. медиана exposure {c['max_median_exposure']}")
     print(f"Записано: {OUT / 'audit_results.json'}, {OUT / 'AUDIT_TABLES.md'}")
     if failed:
         raise SystemExit(f"{len(failed)} проверок не прошли")
@@ -498,6 +539,23 @@ def write_markdown(r: dict, rules) -> None:
           "| Вариант | 4 года | 5 лет | Культуры 5-летнего плана |", "|---|---|---|---|"]
     for k in names:
         L.append(f"| {names[k]} | {fmt(hz[4][k]['per_year'])} | {fmt(hz[5][k]['per_year'])} | {' → '.join(hz[5][k]['crops'])} |")
+    bs = r["bare_soil_ndvi_sensitivity"]
+    p0, p1 = bs["period"]
+    L += ["", "## «Часы голой почвы»: чувствительность к порогу NDVI", "",
+          f"Демо-поле, {p0}–{p1}. Класс — «нет зелёного покрова (открытая почва или стерня)»; exposure — верхняя оценка "
+          "риска там, где стерня оставлена стоять. Порог 0,30 в `erosion.yaml` подобран по этим же демо-полям "
+          "(Шортанды, Костанай), поэтому сравнение порогов здесь — не независимая проверка.", "",
+          "| Порог NDVI | В правилах | Статус ответа | Посчитано месяцев | Снежных | Дней без покрова | Опасных дней | "
+          "Самые опасные месяцы | Макс. медиана exposure |", "|---|---|---|---|---|---|---|---|---|"]
+    for c in bs["cases"]:
+        top = ", ".join(str(m) for m in c["top_months"]) or "—"
+        mx = "—" if c["max_median_exposure"] is None else f"{c['max_median_exposure']:.2f}".replace(".", ",")
+        days = (str(c["bare_days"]), str(c["joint_days"])) if c["months_ok"] else ("—", "—")
+        L.append(f"| < {c['ndvi_max']:.2f} | {'да' if c['is_rule_value'] else 'нет'} | {c['status']} | ".replace(".", ",") +
+                 f"{c['months_ok']} из {c['months_total']} | {c['months_snow']} | {days[0]} | {days[1]} | {top} | {mx} |")
+    if all(c["status"] == "missing" for c in bs["cases"]):
+        L += ["", "Расчёт «Часов голой почвы» ещё не реализован (задача 4): сервис отвечает `status: missing`, "
+              "поэтому числа пустые. Таблица заполнится без правки этого скрипта."]
     (OUT / "AUDIT_TABLES.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 
