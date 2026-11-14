@@ -1,0 +1,51 @@
+{
+  "_comment": "EXAMPLE ONLY. Values are illustrative, not real results. Shape of GET /api/fields/{id}/bare-soil?start_year=&end_year=. Changes must be additive (new optional fields only).",
+  "field_id": 1,
+  "period": { "start_year": 2015, "end_year": 2026 },
+  "status": "partial",
+  "jobs": [
+    { "source": "modis_shoulder", "status": "pending", "job": { "id": "job_abc123", "kind": "modis_shoulder", "status": "running", "done": 3, "total": 12, "error": null } }
+  ],
+  "headline": { "top_months": [4, 9], "max_median_exposure": 0.31 },
+  "definition": {
+    "exposure": { "ru": "Доля дней месяца, когда одновременно: почва открыта, ветер эрозионный и верхний слой сухой.", "kk": "Айдағы күндердің үлесі: топырақ ашық, жел эрозиялық және беткі қабат құрғақ (ана тілінде тексеру қажет).", "en": "Share of days in the month that are bare AND have erosive wind AND dry topsoil on the same day." }
+  },
+  "thresholds": [
+    { "id": "ndvi_bare", "value": 0.2, "unit": "NDVI", "source": "example_source", "status": "assumption", "evidence": "preliminary", "note": "Example threshold; real value and citation come from rules/erosion.yaml" },
+    { "id": "erosive_wind_ms", "value": 6.0, "unit": "m/s at 10 m", "source": "example_source", "status": "assumption", "evidence": "preliminary", "note": "Example threshold" },
+    { "id": "dry_topsoil", "value": 0.15, "unit": "m3/m3 (SMAP) or GWETTOP fraction", "source": "example_source", "status": "assumption", "evidence": "preliminary", "note": "Example threshold" }
+  ],
+  "years": [
+    {
+      "year": 2025,
+      "months": [
+        { "month": 1, "state": "snow", "bare_days": null, "erosive_wind_days": 8, "dry_days": null, "joint_days": null, "days_in_month": 31, "exposure": null, "moisture_source": null, "quality": "ok" },
+        { "month": 4, "state": "ok", "bare_days": 26, "erosive_wind_days": 11, "dry_days": 14, "joint_days": 7, "days_in_month": 30, "exposure": 0.23, "moisture_source": "smap", "quality": "ok" },
+        { "month": 7, "state": "ok", "bare_days": 0, "erosive_wind_days": 6, "dry_days": 20, "joint_days": 0, "days_in_month": 31, "exposure": 0.0, "moisture_source": "smap", "quality": "ok" },
+        { "month": 9, "state": "ok", "bare_days": 24, "erosive_wind_days": 10, "dry_days": 17, "joint_days": 9, "days_in_month": 30, "exposure": 0.3, "moisture_source": "power_gwettop", "quality": "partial" },
+        { "month": 11, "state": "missing", "bare_days": null, "erosive_wind_days": 9, "dry_days": null, "joint_days": null, "days_in_month": 30, "exposure": null, "moisture_source": null, "quality": "missing" }
+      ]
+    }
+  ],
+  "climatology": [
+    { "month": 4, "exposure_median": 0.21, "exposure_p90": 0.34, "n_years": 11 },
+    { "month": 9, "exposure_median": 0.31, "exposure_p90": 0.45, "n_years": 11 }
+  ],
+  "cover_crop_windows": [
+    {
+      "start": "08-20",
+      "end": "10-05",
+      "basis": { "ru": "После уборки поле открыто, а ветер и сухость в сентябре выше всего; до устойчивых заморозков остаётся ~40 дней.", "kk": "Жинаудан кейін алқап ашық (ана тілінде тексеру қажет).", "en": "After harvest the field is bare while September wind and dryness peak; about 40 days remain before persistent frost." },
+      "uncertainty": "medium"
+    }
+  ],
+  "sources": [
+    { "id": "modis", "title": "MODIS MOD13Q1 v6.1 NDVI", "resolution_m": 232, "origin": "live", "spatial_resolution": { "ru": "~232 м", "kk": "~232 м", "en": "~232 m" }, "provenance": { "ru": "спутниковое наблюдение, композит 16 дней", "kk": "спутниктік бақылау", "en": "satellite observation, 16-day composite" } },
+    { "id": "power", "title": "NASA POWER (WS10M, GWETTOP)", "resolution_m": 55000, "origin": "cache", "spatial_resolution": { "ru": "~0,5°×0,625°", "kk": "~0,5°×0,625°", "en": "~0.5°×0.625°" }, "provenance": { "ru": "реанализ MERRA-2", "kk": "MERRA-2 реанализі", "en": "MERRA-2 reanalysis" } },
+    { "id": "smap", "title": "SMAP SPL3SMP_E", "resolution_m": 9000, "origin": "cache", "spatial_resolution": { "ru": "сетка 9 км", "kk": "9 км тор", "en": "9 km grid" }, "provenance": { "ru": "спутниковый радиометр", "kk": "спутниктік радиометр", "en": "satellite radiometer" } }
+  ],
+  "warnings": [
+    { "code": "cell_larger_than_field", "source": "power", "params": {} },
+    { "code": "smap_before_2015_unavailable", "source": "smap", "params": { "fallback": "power_gwettop" } }
+  ]
+}
