@@ -8,7 +8,7 @@
   ],
   "headline": { "top_months": [4, 9], "max_median_exposure": 0.31 },
   "definition": {
-    "exposure": { "ru": "Доля дней месяца, когда одновременно: почва открыта, ветер эрозионный и верхний слой сухой.", "kk": "Айдағы күндердің үлесі: топырақ ашық, жел эрозиялық және беткі қабат құрғақ (ана тілінде тексеру қажет).", "en": "Share of days in the month that are bare AND have erosive wind AND dry topsoil on the same day." }
+    "exposure": { "ru": "Доля дней месяца, когда одновременно: нет зелёного покрова (открытая почва или стерня), ветер эрозионный и верхний слой сухой. Если стерня оставлена стоять, это верхняя оценка риска.", "kk": "Айдағы күндердің үлесі: бір күнде жасыл жамылғы жоқ (ашық топырақ немесе аңыз), жел эрозиялық және беткі қабат құрғақ. Аңыз тік қалдырылса, бұл тәуекелдің жоғарғы бағасы (ана тілінде тексеру қажет).", "en": "Share of days in the month with no green cover (bare soil or stubble) AND erosive wind AND dry topsoil on the same day. Where stubble is left standing, this is an upper bound on the risk." }
   },
   "thresholds": [
     { "id": "ndvi_bare", "value": 0.2, "unit": "NDVI", "source": "example_source", "status": "assumption", "evidence": "preliminary", "note": "Example threshold; real value and citation come from rules/erosion.yaml" },

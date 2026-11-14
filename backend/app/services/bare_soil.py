@@ -1,5 +1,7 @@
-"""«Часы голой почвы»: месяц за месяцем — доля дней, когда на поле одновременно открытая почва,
-эрозионный ветер и сухой верхний слой почвы.
+"""«Часы голой почвы»: месяц за месяцем — доля дней, когда на поле одновременно нет зелёного покрова
+(открытая почва или стерня), дует эрозионный ветер и верхний слой почвы сухой.
+NDVI не отличает стерню от открытой почвы, поэтому там, где стерня оставлена стоять, доля — верхняя оценка риска.
+Пороги — ``backend/app/rules/erosion.yaml``.
 
 Сейчас это КАРКАС: заполняются только годы, месяцы и число дней в месяце. Остальные числа — ``None``,
 состояние месяца — ``missing``, итоговый статус — ``missing``. Расчёт по данным (MODIS, POWER, SMAP) — в задаче 4.
@@ -15,6 +17,7 @@ from datetime import date
 
 from ..data_sources.registry import SOURCES
 from ..geometry import parse_field
+from ..model.rules import Rules
 from ..schemas import BareSoilOut
 from .analysis import MODIS_START, POWER_START, SMAP_START
 from .monitoring import source_meta
@@ -27,9 +30,12 @@ DEFAULT_START_YEAR = 2015
 #: определение показателя; казахский текст требует вычитки носителем языка (как и весь интерфейс на kk)
 DEFINITION = {
     "exposure": {
-        "ru": "Доля дней месяца, когда одновременно: почва открыта, ветер эрозионный и верхний слой сухой.",
-        "kk": "Айдағы күндердің үлесі: топырақ ашық, жел эрозиялық және беткі қабат құрғақ.",
-        "en": "Share of days in the month that are bare AND have erosive wind AND dry topsoil on the same day.",
+        "ru": "Доля дней месяца, когда одновременно: нет зелёного покрова (открытая почва или стерня), ветер "
+              "эрозионный и верхний слой сухой. Если стерня оставлена стоять, это верхняя оценка риска.",
+        "kk": "Айдағы күндердің үлесі: бір күнде жасыл жамылғы жоқ (ашық топырақ немесе аңыз), жел эрозиялық "
+              "және беткі қабат құрғақ. Аңыз тік қалдырылса, бұл тәуекелдің жоғарғы бағасы.",
+        "en": "Share of days in the month with no green cover (bare soil or stubble) AND erosive wind AND dry "
+              "topsoil on the same day. Where stubble is left standing, this is an upper bound on the risk.",
     }
 }
 
@@ -83,7 +89,11 @@ def _sources(geometry: dict) -> list[dict]:
     return out
 
 
-def bare_soil(field_id: int, geometry: dict, start_year: int | None, end_year: int | None) -> dict:
+def bare_soil(field_id: int, geometry: dict, start_year: int | None, end_year: int | None,
+              rules: Rules | None = None) -> dict:
+    """Ответ по контракту. ``rules`` — правила с порогами erosion.yaml (по умолчанию ``get_rules()``);
+    аудит (``make audit``) передаёт правила с другим порогом NDVI для оценки чувствительности.
+    Каркас пороги пока не использует — расчёт в задаче 4."""
     start, end = resolve_period(start_year, end_year)
     body = {
         "field_id": field_id,
