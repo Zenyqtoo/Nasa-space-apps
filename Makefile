@@ -31,7 +31,7 @@ lint:
 	cd backend && .venv/bin/ruff check app tests ../scripts
 
 demo: ## Скачать и сохранить данные демо-поля в data/demo (нужен интернет)
-	cd backend && .venv/bin/python ../scripts/build_demo.py
+	cd backend && .venv/bin/python ../scripts/build_demo.py $(ARGS)
 
 smap: ## Скачать ряд SMAP для демо-поля (нужен EARTHDATA_TOKEN)
 	cd backend && .venv/bin/python ../scripts/prefetch_smap.py

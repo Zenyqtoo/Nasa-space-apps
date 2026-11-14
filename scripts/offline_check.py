@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""Проверка: демо проходит путь «анализ -> сравнение -> слои -> мониторинг и риски -> PDF/XLSX» без сети.
+"""Проверка: демо проходит путь «анализ -> сравнение -> слои -> мониторинг и риски -> часы голой почвы -> PDF/XLSX»
+без сети.
 
     cd backend && OFFLINE=1 .venv/bin/python ../scripts/offline_check.py
 
@@ -19,12 +20,13 @@ os.environ["OFFLINE"] = "1"
 
 import httpx
 
-from app.data_sources.base import demo_field_record
+from app.data_sources.base import demo_field_record, demo_field_records
 from app.report.pdf import build_report
 from app.report.xlsx import build_workbook
 from app.schemas import CompareRequest
 from app.services import layers
 from app.services import monitoring as mon
+from app.services.bare_soil import bare_soil
 from app.services.comparison import run_compare
 from app.services.report_data import gather
 
@@ -72,6 +74,18 @@ async def main() -> None:
     print(f"Риски сезона {r['latest_season']}: итог {r['overall']}; " + ", ".join(f"{i['id']}={i['level']}" for i in r["items"]))
     s = await mon.suitability(demo["geometry"], demo["region"], demo["history"])
     print("Пригодность: " + ", ".join(f"{c['crop']}={c['category']}" for c in s["crops"]))
+    for rec in demo_field_records():
+        b = await bare_soil(0, rec["geometry"], None, None)
+        months = [m for y in b["years"] for m in y["months"]]
+        count = {st: sum(m["state"] == st for m in months) for st in ("ok", "snow", "missing")}
+        pending = sum(m["missing_reason"] == "ndvi_pending_fetch" for m in months)
+        print(f"Часы голой почвы, {rec['id']} {b['period']['start_year']}–{b['period']['end_year']}: status {b['status']}, "
+              f"месяцев ok {count['ok']}, снег {count['snow']}, нет данных {count['missing']} "
+              f"(ждут MODIS межсезонья {pending}); самые опасные месяцы {b['headline']['top_months']}")
+        if b["status"] in ("missing", "loading") or not count["ok"]:
+            raise SystemExit(f"«Часы голой почвы» не посчитаны для {rec['id']}: {[w['code'] for w in b['warnings']]}")
+        if any(m["state"] == "missing" and m["exposure"] is not None for m in months):
+            raise SystemExit("месяц без данных получил число exposure")
     data = await gather(req, {"name": "offline-check"})
     for lang in ("ru", "kk", "en"):
         pdf = build_report(data, lang=lang)

@@ -8,22 +8,23 @@
   ],
   "headline": { "top_months": [4, 9], "max_median_exposure": 0.31 },
   "definition": {
-    "exposure": { "ru": "Доля дней месяца, когда одновременно: почва открыта, ветер эрозионный и верхний слой сухой.", "kk": "Айдағы күндердің үлесі: топырақ ашық, жел эрозиялық және беткі қабат құрғақ (ана тілінде тексеру қажет).", "en": "Share of days in the month that are bare AND have erosive wind AND dry topsoil on the same day." }
+    "exposure": { "ru": "Доля дней месяца, когда одновременно: нет зелёного покрова (открытая почва или стерня), ветер эрозионный и верхний слой сухой. Если стерня оставлена стоять, это верхняя оценка риска.", "kk": "Айдағы күндердің үлесі: бір күнде жасыл жамылғы жоқ (ашық топырақ немесе аңыз), жел эрозиялық және беткі қабат құрғақ. Аңыз тік қалдырылса, бұл тәуекелдің жоғарғы бағасы (ана тілінде тексеру қажет).", "en": "Share of days in the month with no green cover (bare soil or stubble) AND erosive wind AND dry topsoil on the same day. Where stubble is left standing, this is an upper bound on the risk." }
   },
   "thresholds": [
     { "id": "ndvi_bare", "value": 0.2, "unit": "NDVI", "source": "example_source", "status": "assumption", "evidence": "preliminary", "note": "Example threshold; real value and citation come from rules/erosion.yaml" },
     { "id": "erosive_wind_ms", "value": 6.0, "unit": "m/s at 10 m", "source": "example_source", "status": "assumption", "evidence": "preliminary", "note": "Example threshold" },
     { "id": "dry_topsoil", "value": 0.15, "unit": "m3/m3 (SMAP) or GWETTOP fraction", "source": "example_source", "status": "assumption", "evidence": "preliminary", "note": "Example threshold" }
   ],
+  "effective_thresholds": { "ndvi_max": 0.3, "ndvi_field_quantile": 0.5, "wind_parameter": "WS2M_MAX", "wind_ms": 5.0, "smap_m3m3": 0.2, "smap_basis": "wilting_point_0_5cm", "gwettop": 0.75, "gwettop_basis": "cdf_match", "gwettop_pairs": 500, "last_frost_spring": "05-10", "first_frost_autumn": "09-28", "frost_years": 11 },
   "years": [
     {
       "year": 2025,
       "months": [
-        { "month": 1, "state": "snow", "bare_days": null, "erosive_wind_days": 8, "dry_days": null, "joint_days": null, "days_in_month": 31, "exposure": null, "moisture_source": null, "quality": "ok" },
-        { "month": 4, "state": "ok", "bare_days": 26, "erosive_wind_days": 11, "dry_days": 14, "joint_days": 7, "days_in_month": 30, "exposure": 0.23, "moisture_source": "smap", "quality": "ok" },
-        { "month": 7, "state": "ok", "bare_days": 0, "erosive_wind_days": 6, "dry_days": 20, "joint_days": 0, "days_in_month": 31, "exposure": 0.0, "moisture_source": "smap", "quality": "ok" },
-        { "month": 9, "state": "ok", "bare_days": 24, "erosive_wind_days": 10, "dry_days": 17, "joint_days": 9, "days_in_month": 30, "exposure": 0.3, "moisture_source": "power_gwettop", "quality": "partial" },
-        { "month": 11, "state": "missing", "bare_days": null, "erosive_wind_days": 9, "dry_days": null, "joint_days": null, "days_in_month": 30, "exposure": null, "moisture_source": null, "quality": "missing" }
+        { "month": 1, "state": "snow", "bare_days": null, "erosive_wind_days": 8, "dry_days": null, "joint_days": null, "days_in_month": 31, "known_days": 31, "exposure": null, "moisture_source": null, "quality": "ok", "missing_reason": null },
+        { "month": 4, "state": "ok", "bare_days": 26, "erosive_wind_days": 11, "dry_days": 14, "joint_days": 7, "days_in_month": 30, "known_days": 24, "exposure": 0.29, "moisture_source": "smap", "quality": "partial", "missing_reason": null },
+        { "month": 7, "state": "ok", "bare_days": 0, "erosive_wind_days": 6, "dry_days": 20, "joint_days": 0, "days_in_month": 31, "known_days": 31, "exposure": 0.0, "moisture_source": "smap", "quality": "ok", "missing_reason": null },
+        { "month": 9, "state": "ok", "bare_days": 24, "erosive_wind_days": 10, "dry_days": 17, "joint_days": 9, "days_in_month": 30, "known_days": 30, "exposure": 0.3, "moisture_source": "power_gwettop", "quality": "partial", "missing_reason": null },
+        { "month": 11, "state": "missing", "bare_days": null, "erosive_wind_days": 9, "dry_days": null, "joint_days": null, "days_in_month": 30, "known_days": 4, "exposure": null, "moisture_source": null, "quality": "missing", "missing_reason": "ndvi_pending_fetch" }
       ]
     }
   ],
@@ -36,7 +37,8 @@
       "start": "08-20",
       "end": "10-05",
       "basis": { "ru": "После уборки поле открыто, а ветер и сухость в сентябре выше всего; до устойчивых заморозков остаётся ~40 дней.", "kk": "Жинаудан кейін алқап ашық (ана тілінде тексеру қажет).", "en": "After harvest the field is bare while September wind and dryness peak; about 40 days remain before persistent frost." },
-      "uncertainty": "medium"
+      "uncertainty": "medium",
+      "needs_review": ["kk"]
     }
   ],
   "sources": [
@@ -45,7 +47,7 @@
     { "id": "smap", "title": "SMAP SPL3SMP_E", "resolution_m": 9000, "origin": "cache", "spatial_resolution": { "ru": "сетка 9 км", "kk": "9 км тор", "en": "9 km grid" }, "provenance": { "ru": "спутниковый радиометр", "kk": "спутниктік радиометр", "en": "satellite radiometer" } }
   ],
   "warnings": [
-    { "code": "cell_larger_than_field", "source": "power", "params": {} },
+    { "code": "cell_larger_than_field", "source": "power", "params": { "cell_km2": 2401, "field_km2": 3.14 } },
     { "code": "smap_before_2015_unavailable", "source": "smap", "params": { "fallback": "power_gwettop" } }
   ]
 }

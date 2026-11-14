@@ -193,9 +193,14 @@ class BareSoilMonth(BaseModel):
     dry_days: int | None = None
     joint_days: int | None = None
     days_in_month: int
+    #: дни, когда известны все три условия (покров, ветер, сухость); exposure = joint_days / known_days
+    known_days: int | None = None
     exposure: float | None = Field(default=None, ge=0, le=1)
     moisture_source: str | None = None
     quality: Literal["ok", "partial", "missing"]
+    #: почему месяц не посчитан (только при state: missing): future | no_weather | ndvi_pending_fetch |
+    #: ndvi_gap | ndvi_not_covered | no_moisture
+    missing_reason: str | None = None
 
 
 class BareSoilYear(BaseModel):
@@ -215,6 +220,8 @@ class CoverCropWindow(BaseModel):
     end: str
     basis: LocalizedText
     uncertainty: str
+    #: языки, тексты которых требуют вычитки носителем (сейчас всегда ["kk"])
+    needs_review: list[str] = Field(default_factory=list)
 
 
 class BareSoilOut(BaseModel):
@@ -227,6 +234,8 @@ class BareSoilOut(BaseModel):
     headline: BareSoilHeadline
     definition: BareSoilDefinition
     thresholds: list[BareSoilThreshold] = Field(default_factory=list)
+    #: пороги, фактически применённые к полю (θ_wp из SoilGrids, порог GWETTOP по SMAP, даты заморозков)
+    effective_thresholds: dict[str, Any] | None = None
     years: list[BareSoilYear]
     climatology: list[BareSoilClimatology] = Field(default_factory=list)
     cover_crop_windows: list[CoverCropWindow] = Field(default_factory=list)

@@ -1,4 +1,4 @@
-"""NASA POWER Daily API: осадки, температура и модельная влажность почвы.
+"""NASA POWER Daily API: осадки, температура, модельная влажность почвы, ветер и снег.
 
 Документация: https://power.larc.nasa.gov/docs/services/api/temporal/daily/
 Точка запроса — центроид поля. POWER отдаёт значение ячейки исходной сетки
@@ -7,13 +7,18 @@
 """
 from __future__ import annotations
 
+import hashlib
 from datetime import date
 
 from ..geometry import Field
 from .base import DataSource, DataWarning, ProgressCallback, SourceError, http_client
 
 URL = "https://power.larc.nasa.gov/api/temporal/daily/point"
-PARAMETERS = ["PRECTOTCORR", "T2M", "T2M_MAX", "T2M_MIN", "GWETROOT", "GWETTOP"]
+PARAMETERS = [
+    "PRECTOTCORR", "T2M", "T2M_MAX", "T2M_MIN", "GWETROOT", "GWETTOP",
+    # «Часы голой почвы»: ветер (среднее и максимум за сутки, 2 и 10 м) и снег (доля ячейки, высота)
+    "WS2M", "WS10M", "WS2M_MAX", "WS10M_MAX", "FRSNO", "SNODP",
+]
 FILL = -999.0
 FIRST_DAY = date(1981, 1, 1)
 
@@ -57,11 +62,20 @@ async def fetch_point(lat: float, lon: float, start: date, end: date) -> dict:
     }
 
 
+def parameters_tag() -> str:
+    """Короткий отпечаток списка параметров: при его изменении меняется ключ кэша."""
+    return hashlib.sha1(",".join(PARAMETERS).encode()).hexdigest()[:8]
+
+
 class PowerSource(DataSource):
     id = "power"
+    #: v2 — добавлены ветер (WS2M, WS10M, WS2M_MAX, WS10M_MAX) и снег (FRSNO, SNODP).
+    #: Старые файлы кэша без этих рядов получают другой ключ и скачиваются заново.
+    schema_version = 2
 
     def cache_parts(self, field: Field, start: date, end: date) -> dict:
         return {
+            "params": parameters_tag(),
             "lat": round(field.centroid_lat, 2),
             "lon": round(field.centroid_lon, 2),
             "start": start.isoformat(),

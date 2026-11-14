@@ -10,14 +10,15 @@ from ..config import get_settings
 from .base import DataSource
 from .gpm import GpmSource
 from .landsat import LandsatSource
-from .modis import ModisSource
+from .modis import ModisShoulderSource, ModisSource
 from .power import PowerSource
-from .smap import SmapSource
+from .smap import SmapSeasonSource, SmapSource
 from .soilgrids import SoilGridsSource
 
 SOURCES: dict[str, DataSource] = {
     s.id: s
-    for s in (PowerSource(), ModisSource(), SoilGridsSource(), SmapSource(), GpmSource(), LandsatSource())
+    for s in (PowerSource(), ModisSource(), ModisShoulderSource(), SoilGridsSource(), SmapSource(),
+              SmapSeasonSource(), GpmSource(), LandsatSource())
 }
 
 
