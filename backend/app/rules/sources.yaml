@@ -154,3 +154,8 @@ power_parameters:
   name: "NASA POWER, справочник параметров (ответ API, community AG, daily, запрос 14.11.2026): WS2M_MAX — максимальная часовая скорость ветра на 2 м, м/с; GWETTOP — влажность верхних 5 см, 0 — совсем сухо, 1 — насыщение; SNODP — высота снега, см; FRSNO — доля суши под снегом"
   url: "https://power.larc.nasa.gov/api/system/manager/parameters?community=AG&temporal=daily&parameters=WS2M_MAX,GWETTOP,SNODP,FRSNO"
   note: "Сверено с ответом API при разработке"
+
+etccdi_indices:
+  name: "ETCCDI (CCl/CLIVAR/JCOMM Expert Team on Climate Change Detection and Indices), список 27 основных индексов: FD — число дней, когда минимальная суточная температура ниже 0 °C"
+  url: "https://etccdi.pacificclimate.org/list_27_indices.shtml"
+  note: "Определение приведено по памяти: в контейнере хакатона страница недоступна (сетевая политика). Сверить"

@@ -78,7 +78,7 @@ snow:
      note: "Код 2 — снег/лёд. Сверено по каталогу Google Earth Engine и docstring modis.py; таблица в руководстве C6.1 не прочитана"}
   modis_min_field_fraction:
     {value: 0.5, unit: "доля пикселей поля", source: model_design, status: assumption, evidence: preliminary,
-     note: "Композит снежный, если код 2 у не меньше половины пикселей поля; тогда снежными считаются все дни этого композита. Сейчас MODIS загружается только за 9 мая – 30 сентября (DOY 129–273), для апреля и октября–ноября нужна догрузка (задача 4)"}
+     note: "Композит снежный, если код 2 у не меньше половины пикселей поля; тогда снежными считаются все дни этого композита. Сезон (DOY 129–273) загружает источник modis, весну и осень (DOY 81–113, 289–305) — modis_shoulder; счётчики кодов качества сохраняются с задачи 4, в старых рядах их нет — тогда снег только по POWER"}
   power_frsno_min:
     {value: 0.5, unit: "доля ячейки под снегом (POWER FRSNO)", source: model_design, status: assumption, evidence: preliminary,
      note: "Снег покрывает больше половины ячейки. SNODP без FRSNO не годится: в MERRA-2 это высота снега в заснеженной части ячейки (gmao_merra2_faq), и у Шортанды SNODP ≥ 1 см в 61 % дней октября, хотя FRSNO ≥ 0,5 — в 0 % (2015–2024). TODO: сверить с метеорологическим определением дня со снежным покровом (Казгидромет)"}
@@ -88,3 +88,58 @@ snow:
   month_snow_day_fraction:
     {value: 0.5, unit: "доля дней месяца", source: model_design, status: assumption, evidence: preliminary,
      note: "Месяц получает state: snow, если снежных дней не меньше половины; в остальных месяцах снежные дни не считаются днями без покрова"}
+
+# ---------------------------------------------------------------- суточный ряд NDVI (задача 4)
+# Композит MOD13Q1 ставится в середину своего 16-дневного окна; внутри окна берётся его значение,
+# между серединами двух годных композитов — линейная интерполяция. Через снег и длинные разрывы
+# не интерполируем: такие дни «неизвестны» (не 0 и не «голая почва»).
+ndvi_daily:
+  min_valid_fraction:
+    {value: 0.5, unit: "доля пикселей поля (pixel_reliability 0–1)", source: model_design, status: assumption, evidence: preliminary,
+     note: "Композит годен для «Часов», если хороших пикселей не меньше половины поля — так же, как для тренда NDVI (model.yaml, ndvi_trend.min_valid_fraction)"}
+  max_interp_gap_days:
+    {value: 32, unit: "дней между серединами композитов", source: model_design, status: assumption, evidence: preliminary,
+     note: "Интерполируем между годными композитами, если между их серединами не больше 32 дней, то есть пропущен (облака) не больше одного композита. При двух и более пропущенных композитах подряд дни между ними неизвестны"}
+
+# ---------------------------------------------------------------- месяц
+month:
+  min_known_fraction:
+    {value: 0.5, unit: "доля дней месяца", source: model_design, status: assumption, evidence: preliminary,
+     note: "Месяц считается (state: ok), если известны все три условия (покров, ветер, сухость) не меньше чем в половине дней; иначе state: missing. exposure = joint_days / known_days, поэтому неизвестные дни не занижают долю; при known_days < days_in_month — quality: partial"}
+
+# ---------------------------------------------------------------- многолетняя сводка
+climatology:
+  min_years:
+    {value: 3, unit: "лет с посчитанным месяцем", source: model_design, status: assumption, evidence: preliminary,
+     note: "Медиана и P90 exposure по месяцу показываются, если месяц посчитан (state: ok) хотя бы в 3 годах; иначе null"}
+
+headline:
+  top_n:
+    {value: 3, unit: "месяцев", source: model_design, status: assumption, evidence: preliminary,
+     note: "В headline.top_months — до трёх месяцев с наибольшей медианой exposure (только месяцы с медианой больше нуля)"}
+
+# ---------------------------------------------------------------- окна покровных культур
+# Окно — период, когда медианная доля опасных дней высокая и до первого осеннего заморозка
+# остаётся достаточно дней, чтобы покровная культура успела взойти и закрыть почву.
+# Даты заморозков — медианы по годам из POWER T2M_MIN (ячейка ~50 км, воздух на 2 м).
+cover_crop:
+  # Последний весенний заморозок ищется до конца этого месяца, первый осенний — после него (номер месяца).
+  season_split_month: 7
+  min_median_exposure:
+    {value: 0.10, unit: "медиана exposure месяца", source: model_design, status: assumption, evidence: preliminary,
+     note: "Месяц кандидат в окно покровной культуры, если медиана доли опасных дней не меньше 0,10 (≈ 3 дня в месяц). Значение не откалибровано. TODO агроному"}
+  frost_t2m_min_c:
+    {value: 0.0, unit: "°C (POWER T2M_MIN)", source: etccdi_indices, status: assumption, evidence: definition,
+     note: "День с заморозком, если минимальная температура воздуха ниже 0 °C — определение индекса FD (frost days) ETCCDI. В POWER это воздух на 2 м в ячейке ~50 км; заморозок на поверхности почвы бывает и при T2M_MIN выше 0"}
+  min_frost_free_days:
+    {value: 30, unit: "дней до медианной даты первого осеннего заморозка", source: model_design, status: assumption, evidence: preliminary,
+     note: "Окно показывается, если от его начала до медианы первого осеннего заморозка не меньше 30 дней — предварительно, чтобы культура успела взойти. Источник для Северного Казахстана не найден. TODO агроному: какие покровные культуры и сроки сева реалистичны после уборки"}
+  min_years_medium_uncertainty:
+    {value: 5, unit: "лет", source: model_design, status: assumption, evidence: preliminary,
+     note: "Меньше 5 посчитанных лет в месяцах окна — неопределённость high"}
+  min_years_low_uncertainty:
+    {value: 10, unit: "лет", source: model_design, status: assumption, evidence: preliminary,
+     note: "Не меньше 10 лет и не больше половины месяцев с quality: partial — неопределённость low; иначе medium"}
+  max_partial_share_low_uncertainty:
+    {value: 0.5, unit: "доля месяцев окна с quality: partial", source: model_design, status: assumption, evidence: preliminary,
+     note: "Если в месяцах окна больше половины месяцев посчитаны частично (GWETTOP, NDVI по среднему, неизвестные дни), неопределённость не ниже medium"}

@@ -1,25 +1,34 @@
 """«Часы голой почвы»: месяц за месяцем — доля дней, когда на поле одновременно нет зелёного покрова
 (открытая почва или стерня), дует эрозионный ветер и верхний слой почвы сухой.
 NDVI не отличает стерню от открытой почвы, поэтому там, где стерня оставлена стоять, доля — верхняя оценка риска.
-Пороги — ``backend/app/rules/erosion.yaml``.
+Пороги — ``backend/app/rules/erosion.yaml``, расчёт — ``app/analytics/bare_soil.py``.
 
-Сейчас это КАРКАС: заполняются только годы, месяцы и число дней в месяце. Остальные числа — ``None``,
-состояние месяца — ``missing``, итоговый статус — ``missing``. Расчёт по данным (MODIS, POWER, SMAP) — в задаче 4.
-Каркас не ходит в сеть и не запускает фоновых загрузок: источники только описываются, а их ``origin``
-определяется по демо-данным и кэшу (``read_cached``).
+Источники:
+  * POWER — ветер (WS2M_MAX), снег (FRSNO, SNODP), GWETTOP, T2M_MIN; запрашивается сразу (≈ 2 с, затем кэш);
+  * MODIS ``modis`` (сезон, DOY 129–273) и ``modis_shoulder`` (весна и осень, DOY 81–113 и 289–305) — фоновые задачи;
+  * SMAP ``smap`` (апрель–май, только кэш) и ``smap_season`` (апрель–октябрь, фоновая задача, нужен Earthdata);
+    в дни без SMAP сухость — по GWETTOP (``moisture_source`` месяца);
+  * SoilGrids — влажность завядания слоя 0–5 см для порога SMAP.
+Пока данных нет, месяц получает ``state: missing`` и ``missing_reason`` — никогда не 0.
 
 Форма ответа — docs/contracts/bare_soil.example.json; менять можно только добавлением необязательных полей.
 """
 from __future__ import annotations
 
 import calendar
+import math
 from datetime import date
 
+from ..analytics import bare_soil as bs
+from ..analytics import soil_water
+from ..data_sources.base import DataWarning, SourceResult
 from ..data_sources.registry import SOURCES
-from ..geometry import parse_field
-from ..model.rules import Rules
+from ..data_sources.smap import CELL_M
+from ..data_sources.smap import FIRST_DAY as SMAP_FIRST_DAY
+from ..geometry import Field, parse_field
+from ..model.rules import Rules, get_rules
 from ..schemas import BareSoilOut
-from .analysis import MODIS_START, POWER_START, SMAP_START
+from .analysis import MODIS_START, POWER_START, SMAP_START, _slow_source
 from .monitoring import source_meta
 
 #: MOD13Q1 начинается 18.02.2000, поэтому 2000 год неполный; расчёт — с 2001 года.
@@ -53,8 +62,18 @@ def resolve_period(start_year: int | None, end_year: int | None, today: date | N
     return start, end
 
 
+#: ячейка POWER (метеопараметры MERRA-2), градусы широты x долготы
+POWER_CELL_DEG = (0.5, 0.625)
+KM_PER_DEG = 111.32
+#: медленные источники: (id, начало ряда для ключа кэша, запускать ли фоновую задачу)
+SLOW_SOURCES = (("modis", MODIS_START, True), ("modis_shoulder", MODIS_START, True),
+                ("smap", SMAP_START, False), ("smap_season", SMAP_START, True))
+#: какой источник MODIS покрывает какие дни (analytics.bare_soil.ndvi_coverage)
+NDVI_COVERAGE = {"main": "modis", "shoulder": "modis_shoulder"}
+
+
 def month_grid(start_year: int, end_year: int) -> list[dict]:
-    """Все 12 месяцев каждого года периода; числа ещё не посчитаны."""
+    """Все 12 месяцев каждого года периода без чисел (state: missing)."""
     return [
         {
             "year": y,
@@ -67,9 +86,11 @@ def month_grid(start_year: int, end_year: int) -> list[dict]:
                     "dry_days": None,
                     "joint_days": None,
                     "days_in_month": calendar.monthrange(y, m)[1],
+                    "known_days": 0,
                     "exposure": None,
                     "moisture_source": None,
                     "quality": "missing",
+                    "missing_reason": "no_weather",
                 }
                 for m in range(1, 13)
             ],
@@ -78,35 +99,187 @@ def month_grid(start_year: int, end_year: int) -> list[dict]:
     ]
 
 
-def _sources(geometry: dict) -> list[dict]:
-    """Источники расчёта с их текущим происхождением данных (демо / кэш / нет), без сетевых запросов."""
-    field = parse_field(geometry)
-    today = date.today()
+def thresholds(rules: Rules) -> list[dict]:
+    """Пороги контракта (ndvi_bare, erosive_wind_ms, dry_topsoil) — правила erosion.yaml."""
     out = []
-    for sid, start in (("power", POWER_START), ("modis", MODIS_START), ("smap", SMAP_START)):
-        hit = SOURCES[sid].read_cached(field, start, today)
-        out.append(source_meta(sid, hit.origin if hit else None))
+    for cid, ref in rules.erosion["contract_thresholds"].items():
+        group, key = ref.split(".")
+        p = rules.erosion[group][key]
+        out.append({"id": cid, "value": float(p.value), "unit": p.unit, "source": p.source_id, "status": p.status,
+                    "evidence": p.evidence, "note": p.note})
     return out
 
 
-def bare_soil(field_id: int, geometry: dict, start_year: int | None, end_year: int | None,
-              rules: Rules | None = None) -> dict:
+def _wilting_point_0_5(soil: SourceResult | None) -> float | None:
+    if soil is None or not soil.ok:
+        return None
+    summary = soil_water.soil_summary(soil.data)
+    top = next((layer for layer in (summary or {}).get("layers", []) if layer["top_cm"] == 0), None)
+    return None if top is None else float(top["wilting_point"])
+
+
+def _power_cell_km2(lat: float) -> float:
+    return POWER_CELL_DEG[0] * KM_PER_DEG * POWER_CELL_DEG[1] * KM_PER_DEG * math.cos(math.radians(lat))
+
+
+def _job_entry(sid: str, state: dict) -> dict:
+    return {"source": sid, "status": state["status"], "job": state.get("job")}
+
+
+async def compute(field: Field, start: int, end: int, rules: Rules, *, start_jobs: bool = True,
+                  today: date | None = None) -> dict:
+    """Расчёт по данным: годы, климатология, окна, источники, предупреждения, задачи."""
+    e = rules.erosion
+    today = today or date.today()
+    warnings: list[DataWarning] = []
+    power = await SOURCES["power"].fetch(field, POWER_START, today)
+    soil = await SOURCES["soilgrids"].fetch(field, POWER_START, today)
+    warnings += power.warnings
+    slow: dict[str, tuple[SourceResult | None, dict]] = {
+        sid: _slow_source(SOURCES[sid], field, t0, today, start_jobs and with_job) for sid, t0, with_job in SLOW_SOURCES
+    }
+    with_jobs = {sid for sid, _, with_job in SLOW_SOURCES if with_job}
+    # в jobs — только реально запущенные фоновые загрузки; остальные состояния — в warnings
+    jobs = [_job_entry(sid, st) for sid, (_, st) in slow.items() if sid in with_jobs and st.get("job")]
+    origins = {"power": power.origin, **{sid: (res.origin if res else None) for sid, (res, _) in slow.items()}}
+
+    years = month_grid(start, end)
+    result = {"years": years, "climatology": [], "headline": {"top_months": [], "max_median_exposure": None},
+              "cover_crop_windows": [], "jobs": jobs, "origins": origins, "effective_thresholds": None}
+    wind_col = e["erosive_wind"]["power_parameter"]
+    if not power.ok or power.origin == "fallback" or wind_col not in power.data.get("daily", {}):
+        # без ветра своего поля считать нельзя: климат демо-поля или старый кэш без ветра не подставляем
+        code = "power_without_wind" if power.ok and power.origin != "fallback" else "bare_soil_no_weather"
+        warnings.append(DataWarning(code, "power", {"origin": power.origin}))
+        return {**result, "warnings": warnings}
+
+    df = bs.power_frame(power.data)
+    snow = bs.power_snow(df, e)
+    sm = bs.smap_days(*(slow[s][0].data if slow[s][0] else None for s in ("smap", "smap_season")))
+    wp = _wilting_point_0_5(soil)
+    factor = float(e["dry_topsoil"]["smap_wilting_point_factor"].value)
+    smap_thr = factor * wp if wp is not None else float(e["dry_topsoil"]["smap_fallback_m3m3"].value)
+    gw = bs.gwettop_threshold(df, sm, smap_thr, snow, e)
+    modis_data = [slow[s][0].data for s in ("modis", "modis_shoulder") if slow[s][0] is not None]
+    comps = bs.composites(modis_data, e)
+    daily = bs.daily_conditions(df, comps, sm, smap_thr, gw["value"], e, date(start, 1, 1), date(end, 12, 31))
+    weather_days = df.index[df[wind_col].notna()]
+    last_weather = weather_days[-1].date() if len(weather_days) else None
+    ndvi_ready = {cov: slow[sid][1]["status"] == "ready" for cov, sid in NDVI_COVERAGE.items()}
+
+    flags = {"gwettop": 0, "ndvi_proxy": 0, "smap": 0}
+    proxy_years: set[int] = set()
+    pending: list[str] = []
+    for y in years:
+        months = []
+        for m in range(1, 13):
+            mo = bs.month_summary(daily, y["year"], m, e, last_weather=last_weather, ndvi_ready=ndvi_ready)
+            f = mo.pop("_flags")
+            for k in flags:
+                flags[k] += int(bool(f.get(k)))
+            if f.get("ndvi_proxy"):
+                proxy_years.add(y["year"])
+            if mo["missing_reason"] == "ndvi_pending_fetch":
+                pending.append(f"{y['year']}-{m:02d}")
+            months.append(mo)
+        y["months"] = months
+
+    clim = bs.climatology(years, e)
+    frost = bs.frost_dates(df, e, range(start, end + 1))
+    result.update(
+        climatology=clim, headline=bs.headline(clim, e),
+        cover_crop_windows=bs.cover_crop_windows(clim, years, frost, e),
+        effective_thresholds={
+            "ndvi_max": float(e["bare_soil"]["ndvi_max"].value),
+            "ndvi_field_quantile": float(e["bare_soil"]["min_field_fraction"].value),
+            "wind_parameter": wind_col,
+            "wind_ms": float(e["erosive_wind"]["speed_ms"].value),
+            "smap_m3m3": round(smap_thr, 4),
+            "smap_basis": "wilting_point_0_5cm" if wp is not None else "fallback",
+            "gwettop": gw["value"],
+            "gwettop_basis": gw["basis"],
+            "gwettop_pairs": gw["pairs"],
+            "last_frost_spring": frost["last_spring"].strftime("%m-%d") if frost["last_spring"] else None,
+            "first_frost_autumn": frost["first_autumn"].strftime("%m-%d") if frost["first_autumn"] else None,
+            "frost_years": frost["n_years"],
+        },
+    )
+
+    # ---- предупреждения ---------------------------------------------------------
+    field_km2 = field.area_ha / 100
+    cell_km2 = _power_cell_km2(field.centroid_lat)
+    if field_km2 < cell_km2:
+        warnings.append(DataWarning("cell_larger_than_field", "power",
+                                    {"cell_km2": round(cell_km2), "field_km2": round(field_km2, 2)}))
+    smap_cell_km2 = (CELL_M / 1000) ** 2
+    if flags["smap"] and field_km2 < smap_cell_km2:
+        warnings.append(DataWarning("cell_larger_than_field", "smap",
+                                    {"cell_km2": round(smap_cell_km2), "field_km2": round(field_km2, 2)}))
+    if date(start, 1, 1) < SMAP_FIRST_DAY:
+        warnings.append(DataWarning("smap_before_2015_unavailable", "smap",
+                                    {"first_day": SMAP_FIRST_DAY.isoformat(), "fallback": "power_gwettop"}))
+    if flags["gwettop"]:
+        warnings.append(DataWarning("moisture_fallback_gwettop", "smap", {"months": flags["gwettop"]}))
+    if gw["basis"] == "fallback":
+        warnings.append(DataWarning("gwettop_threshold_fallback", "rules",
+                                    {"pairs": gw["pairs"], "value": gw["value"]}))
+    if wp is None:
+        warnings.append(DataWarning("smap_threshold_fallback", "soilgrids", {"value": smap_thr}))
+    if flags["ndvi_proxy"]:
+        warnings.append(DataWarning("ndvi_field_mean_proxy", "modis",
+                                    {"months": flags["ndvi_proxy"], "years": sorted(proxy_years)}))
+    if pending:
+        sources = sorted({sid for cov, sid in NDVI_COVERAGE.items() if not ndvi_ready[cov]})
+        warnings.append(DataWarning("ndvi_pending_fetch", ",".join(sources), {"months": len(pending)}))
+    for sid, (_, st) in slow.items():
+        if st["status"] == "unavailable" and st.get("reason") != "offline":
+            warnings.append(DataWarning("source_unavailable", sid, {"detail": st.get("reason") or ""}))
+        elif st["status"] == "unavailable":
+            warnings.append(DataWarning("offline_no_cache", sid))
+        elif st["status"] == "not_configured" and sid == "smap_season":
+            warnings.append(DataWarning("smap_not_configured", sid))
+    return {**result, "warnings": warnings}
+
+
+def overall_status(years: list[dict], jobs: list[dict]) -> str:
+    """ok / partial / loading / missing; будущие месяцы (missing_reason: future) не учитываются."""
+    months = [m for y in years for m in y["months"] if m["missing_reason"] != "future"]
+    done = [m for m in months if m["state"] in ("ok", "snow")]
+    running = any(j["status"] == "pending" for j in jobs)
+    if not done:
+        return "loading" if running else "missing"
+    if running or len(done) < len(months) or any(m["quality"] == "partial" for m in done):
+        return "partial"
+    return "ok"
+
+
+def _sources(origins: dict) -> list[dict]:
+    """Источники в форме monitoring.source_meta. MODIS и SMAP — по основному ряду, межсезонье — в jobs."""
+    return [source_meta(sid, origins.get(sid) or (origins.get(alt) if alt else None))
+            for sid, alt in (("power", None), ("modis", "modis_shoulder"), ("smap", "smap_season"))]
+
+
+async def bare_soil(field_id: int, geometry: dict, start_year: int | None, end_year: int | None,
+                    rules: Rules | None = None, *, start_jobs: bool = True) -> dict:
     """Ответ по контракту. ``rules`` — правила с порогами erosion.yaml (по умолчанию ``get_rules()``);
-    аудит (``make audit``) передаёт правила с другим порогом NDVI для оценки чувствительности.
-    Каркас пороги пока не использует — расчёт в задаче 4."""
+    аудит (``make audit``) передаёт правила с другим порогом NDVI для оценки чувствительности."""
+    rules = rules or get_rules()
     start, end = resolve_period(start_year, end_year)
+    field = parse_field(geometry)
+    r = await compute(field, start, end, rules, start_jobs=start_jobs)
     body = {
         "field_id": field_id,
         "period": {"start_year": start, "end_year": end},
-        "status": "missing",
-        "jobs": [],
-        "headline": {"top_months": [], "max_median_exposure": None},
+        "status": overall_status(r["years"], r["jobs"]),
+        "jobs": r["jobs"],
+        "headline": r["headline"],
         "definition": DEFINITION,
-        "thresholds": [],
-        "years": month_grid(start, end),
-        "climatology": [],
-        "cover_crop_windows": [],
-        "sources": _sources(geometry),
-        "warnings": [{"code": "bare_soil_not_computed", "source": "bare_soil", "params": {}}],
+        "thresholds": thresholds(rules),
+        "effective_thresholds": r["effective_thresholds"],
+        "years": r["years"],
+        "climatology": r["climatology"],
+        "cover_crop_windows": r["cover_crop_windows"],
+        "sources": _sources(r["origins"]),
+        "warnings": [w.as_dict() for w in r["warnings"]],
     }
     return BareSoilOut.model_validate(body).model_dump(mode="json")
