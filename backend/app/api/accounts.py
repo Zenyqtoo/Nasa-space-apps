@@ -9,7 +9,8 @@ from .. import auth, db
 from ..config import get_settings
 from ..geometry import GeometryError, parse_field
 from ..model.rules import RulesError
-from ..schemas import AnalysisIn, FieldIn, LoginIn, ProfileIn, RegisterIn
+from ..schemas import AnalysisIn, BareSoilOut, FieldIn, LoginIn, ProfileIn, RegisterIn
+from ..services import bare_soil as bare_soil_svc
 from ..services import fields as fs
 from ..services import layers as layer_svc
 from ..services import monitoring as mon
@@ -202,6 +203,17 @@ async def field_monitoring(field_id: int, start: str | None = None, end: str | N
     try:
         f = fs.get_field(user["id"], field_id)
         return await mon.monitoring(f["geometry"], f["region"], start, end)
+    except HANDLED as exc:
+        raise _err(exc) from exc
+
+
+@router.get("/fields/{field_id}/bare-soil", response_model=BareSoilOut)
+async def field_bare_soil(field_id: int, start_year: int | None = None, end_year: int | None = None,
+                          user: dict = Depends(auth.current_user)) -> dict:
+    """Часы голой почвы по месяцам. Форма ответа — docs/contracts/bare_soil.example.json."""
+    try:
+        f = fs.get_field(user["id"], field_id)
+        return bare_soil_svc.bare_soil(f["id"], f["geometry"], start_year, end_year)
     except HANDLED as exc:
         raise _err(exc) from exc
 
