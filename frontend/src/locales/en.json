@@ -1010,10 +1010,14 @@
       "approach_title": "Approach",
       "approach": "A transparent rule-based model: every number lives in YAML with a source and a verification status. NASA data set the moisture and drought frequency of the specific field; the rules set the crop response. No machine learning and no black box.",
       "data_title": "Data",
-      "data": "NASA POWER, MODIS MOD13Q1 and SMAP SPL3SMP_E are integrated, as is the ISRIC SoilGrids soil map. GPM IMERG and Landsat are not integrated yet — the reasons are given below."
+      "data": "Connection status for each catalog entry is loaded from the running service — see the list below for limits and why a source is not connected yet."
     },
     "datasets_title": "Datasets",
-    "datasets_hint": "“Integrated” means the data are actually loaded and used in calculations; “not integrated” means only a description and a plan.",
+    "datasets_hint": "Status comes from the service: connected (in use), planned (not wired yet), key required (Earthdata or similar), or offline (demo / no network). Icons and labels repeat the state, not only colour.",
+    "connected_summary": "{{connected}} of {{total}} sources connected",
+    "states_legend": "Status labels (each card above shows the live state from the server):",
+    "not_active_reason": "Why not connected",
+    "offline_note": "The server is in offline mode; live NASA requests are not made until it is turned off.",
     "integrated": "integrated",
     "not_integrated": "not integrated",
     "docs": "Documentation",
@@ -1022,7 +1026,7 @@
     "honest_2": "SMAP measures the top 5 cm of soil in a 9 km cell; the moisture stock of the 1 m layer is estimated by the model.",
     "honest_3": "MODIS NDVI shows green biomass and is used for monitoring only; it does not measure yield.",
     "honest_4": "All series are historical, with data-delivery latency; the service makes no weather forecasts.",
-    "honest_5": "GPM IMERG requires a separate GES DISC application approval in the Earthdata profile; until it is granted, the dataset is not used.",
+    "honest_earthdata": "Some NASA datasets require a NASA Earthdata account and an approved application before data can be read — the cards above show which sources need it.",
     "demo_title": "A 5-minute demonstration",
     "demo": {
       "select": "Open the demo and choose the Shortandy or Kostanay field.",
