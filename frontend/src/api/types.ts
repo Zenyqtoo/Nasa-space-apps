@@ -641,3 +641,69 @@ export interface Economics {
   breakeven_price_factor: number | null;
   per_year: { year: number; crop: string; revenue_kzt_ha: number; cost_kzt_ha: number; gross_margin_kzt_ha: number }[];
 }
+
+export type BareSoilMonthState = "ok" | "snow" | "missing";
+export type BareSoilMonthQuality = "ok" | "partial" | "missing";
+
+export interface BareSoilMonth {
+  month: number;
+  state: BareSoilMonthState;
+  bare_days: number | null;
+  erosive_wind_days: number;
+  dry_days: number | null;
+  joint_days: number | null;
+  days_in_month: number;
+  exposure: number | null;
+  moisture_source: string | null;
+  quality: BareSoilMonthQuality;
+}
+
+export interface BareSoilYear {
+  year: number;
+  months: BareSoilMonth[];
+}
+
+export interface BareSoilThreshold {
+  id: string;
+  value: number;
+  unit: string;
+  source: string;
+  status: Status;
+  evidence: Evidence;
+  note: string;
+}
+
+export interface BareSoilClimatologyMonth {
+  month: number;
+  exposure_median: number;
+  exposure_p90: number;
+  n_years: number;
+}
+
+export interface BareSoilCoverCropWindow {
+  start: string;
+  end: string;
+  basis: I18nText;
+  uncertainty: "low" | "medium" | "high";
+}
+
+export interface BareSoilJob {
+  source: string;
+  status: string;
+  job?: Job;
+}
+
+export interface BareSoil {
+  field_id: number;
+  period: { start_year: number; end_year: number };
+  status: string;
+  jobs: BareSoilJob[];
+  headline: { top_months: number[]; max_median_exposure: number };
+  definition: { exposure: I18nText };
+  thresholds: BareSoilThreshold[];
+  years: BareSoilYear[];
+  climatology: BareSoilClimatologyMonth[];
+  cover_crop_windows: BareSoilCoverCropWindow[];
+  sources: SourceMeta[];
+  warnings: DataWarning[];
+}
