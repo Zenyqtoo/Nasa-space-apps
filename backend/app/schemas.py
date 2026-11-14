@@ -123,3 +123,112 @@ class AnalysisIn(BaseModel):
     variants: list[VariantIn] | None = Field(default=None, max_length=6)
     start_year: int | None = Field(default=None, ge=2000, le=2100)
     stress_year: int | None = Field(default=None, ge=1981, le=2100)
+
+
+# ---------------------------------------------------------------- ответ GET /api/fields/{id}/bare-soil
+# Форма ответа зафиксирована в docs/contracts/bare_soil.example.json (согласована с фронтендом).
+# Менять можно только добавлением необязательных полей.
+class LocalizedText(BaseModel):
+    ru: str
+    kk: str
+    en: str
+
+
+class SourceMetaOut(BaseModel):
+    """Источник данных — та же форма, что у ``monitoring.source_meta``."""
+
+    id: str
+    title: str
+    resolution_m: float | None = None
+    origin: str | None = None
+    spatial_resolution: LocalizedText
+    provenance: LocalizedText
+
+
+class DataWarningOut(BaseModel):
+    """Предупреждение о качестве данных — та же форма, что у ``DataWarning.as_dict``."""
+
+    code: str
+    source: str
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
+class BareSoilJob(BaseModel):
+    """Фоновая загрузка источника — как элементы ``jobs`` у /monitoring."""
+
+    source: str
+    status: str
+    job: dict[str, Any] | None = None
+
+
+class BareSoilPeriod(BaseModel):
+    start_year: int
+    end_year: int
+
+
+class BareSoilHeadline(BaseModel):
+    top_months: list[int] = Field(default_factory=list)
+    max_median_exposure: float | None = None
+
+
+class BareSoilDefinition(BaseModel):
+    exposure: LocalizedText
+
+
+class BareSoilThreshold(BaseModel):
+    id: str
+    value: float
+    unit: str
+    source: str
+    status: str
+    evidence: str
+    note: str
+
+
+class BareSoilMonth(BaseModel):
+    month: int = Field(ge=1, le=12)
+    state: Literal["ok", "snow", "missing"]
+    bare_days: int | None = None
+    erosive_wind_days: int | None = None
+    dry_days: int | None = None
+    joint_days: int | None = None
+    days_in_month: int
+    exposure: float | None = Field(default=None, ge=0, le=1)
+    moisture_source: str | None = None
+    quality: Literal["ok", "partial", "missing"]
+
+
+class BareSoilYear(BaseModel):
+    year: int
+    months: list[BareSoilMonth]
+
+
+class BareSoilClimatology(BaseModel):
+    month: int = Field(ge=1, le=12)
+    exposure_median: float | None = None
+    exposure_p90: float | None = None
+    n_years: int
+
+
+class CoverCropWindow(BaseModel):
+    start: str  # "ММ-ДД"
+    end: str
+    basis: LocalizedText
+    uncertainty: str
+
+
+class BareSoilOut(BaseModel):
+    field_id: int
+    period: BareSoilPeriod
+    #: ok — всё посчитано; partial — часть месяцев или фоновые загрузки ещё идут;
+    #: loading — пока ничего не посчитано, загрузки идут; missing — посчитать нельзя (нет данных)
+    status: Literal["ok", "partial", "loading", "missing"]
+    jobs: list[BareSoilJob] = Field(default_factory=list)
+    headline: BareSoilHeadline
+    definition: BareSoilDefinition
+    thresholds: list[BareSoilThreshold] = Field(default_factory=list)
+    years: list[BareSoilYear]
+    climatology: list[BareSoilClimatology] = Field(default_factory=list)
+    cover_crop_windows: list[CoverCropWindow] = Field(default_factory=list)
+    sources: list[SourceMetaOut]
+    warnings: list[DataWarningOut] = Field(default_factory=list)

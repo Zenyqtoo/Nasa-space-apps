@@ -46,7 +46,7 @@ make dev        # бэкенд :8000 и фронтенд :5173 (Vite прокс�
 
 | Команда | Что делает |
 |---|---|
-| `make test` | 109 тестов бэкенда (`pytest`): модель, правила, источники, API, аккаунты и изоляция, мониторинг, PDF, XLSX, переводы |
+| `make test` | 122 теста бэкенда (`pytest`): модель, правила, источники, API, аккаунты и изоляция, мониторинг, PDF, XLSX, переводы |
 | `make build` | сборка фронтенда с проверкой TypeScript в strict-режиме |
 | `make lint` | `ruff` для бэкенда и скриптов |
 | `make audit` | воспроизводимый аудит модели на демо-поле → `docs/audit/` |
@@ -290,6 +290,7 @@ scripts/                 build_demo.py, prefetch_smap.py, build_region_reference
 | `POST /api/auth/register`, `/login`, `/logout`, `/demo`; `GET/PUT /api/auth/me` | аккаунт, демо-песочница, профиль |
 | `GET/POST /api/fields`, `GET/PUT/DELETE /api/fields/{id}` | поля |
 | `GET /api/fields/{id}/overview`, `/monitoring?start=YYYY-MM&end=YYYY-MM`, `/seasons`, `/risk`, `/suitability` | данные и оценки поля |
+| `GET /api/fields/{id}/bare-soil?start_year=&end_year=` | «Часы голой почвы» по месяцам (2001…текущий год, по умолчанию с 2015). **Пока каркас:** годы и дни месяца без расчёта, `status: missing`; расчёт — в разработке. Контракт: `docs/contracts/` |
 | `GET /api/fields/{id}/layers/{ndvi\|ndvi_anomaly\|soil_moisture\|precip}?date=` | слой карты со сводкой по полю |
 | `GET/POST /api/fields/{id}/analyses`, `GET /api/analyses`, `GET/DELETE /api/analyses/{id}` | сохранённые анализы (свои веса `weights`, `stress_year`, сценарии) |
 | `GET /api/fields/{id}/report.pdf?lang=&analysis_id=&variant=`, `/report.xlsx?lang=&analysis_id=` | отчёты |
