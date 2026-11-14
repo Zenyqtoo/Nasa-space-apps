@@ -6,7 +6,7 @@ VENV := backend/.venv
 install: ## Установить зависимости бэкенда и фронтенда
 	$(PY) -m venv $(VENV)
 	$(VENV)/bin/pip install -q --upgrade pip
-	$(VENV)/bin/pip install -q -e "backend[dev]"
+	$(VENV)/bin/pip install -q -c backend/constraints.txt -e "backend[dev]"
 	cd frontend && npm install
 
 dev: ## Запустить бэкенд (8000) и фронтенд (5173) локально
