@@ -22,6 +22,69 @@
 | 1. Проверка проекта | `make test` (109), `lint`, `build`, `offline-check` проходят; живой запрос для точки 52.3/68.5: POWER, SoilGrids — OK, MODIS — медленно, SMAP — не проверен (в контейнере нет токена и закрыт `urs.earthdata.nasa.gov`) | `docs/HACKATHON_LOG.md`, `docs/contracts/bare_soil.example.json` | ветка `hackathon/task1-log-and-contract` |
 | 2. Каркас `/bare-soil` | эндпоинт по контракту, проверка владельца, период 2001…текущий год; числа пока `null`, `status: missing` | `backend/app/schemas.py`, `services/bare_soil.py`, `api/accounts.py`, `tests/test_bare_soil.py`, `docs/contracts/README.md`, `README.md` | ветка `hackathon/task2-bare-soil-endpoint` |
 | 3. Пороги эрозии | `rules/erosion.yaml`: NDVI < 0,30 (нет зелёного покрова — открытая почва или стерня), ветер ≥ 5 м/с на 2 м по POWER `WS2M_MAX` (RWEQ), сухо — SMAP ниже влажности завядания 0–5 см (Chepil 1956), GWETTOP — порог по распределению SMAP для поля (Reichle & Koster 2004), снег — MOD13Q1 код 2 или POWER FRSNO ≥ 0,5 и SNODP ≥ 2,54 см; 12 источников в `sources.yaml`; загрузчик проверяет группы, диапазоны, высоту ветра; `make audit` показывает «Часы» при NDVI 0,25 и 0,30 | `backend/app/rules/erosion.yaml`, `rules/sources.yaml`, `model/rules.py`, `services/bare_soil.py`, `tests/test_rules.py`, `scripts/audit_model.py`, `docs/contracts/README.md`, `docs/LIMITATIONS.md` | ветка `hackathon/task3-erosion-rules` |
+| 4. Расчёт «Часов голой почвы» | POWER: + `WS2M`, `WS10M`, `WS2M_MAX`, `WS10M_MAX`, `FRSNO`, `SNODP` (кэш v2), демо обоих полей обновлено живым запросом 14.11.2026. MODIS: источник `modis_shoulder` (DOY 81–113 и 289–305, окна ≤ 10 дат), счётчики `pixel_reliability` (снег 2 и облака 3 раздельно) и квантили NDVI у каждого композита. SMAP: источник `smap_season` (апрель–октябрь, кэш гранул общий с `smap`), иначе GWETTOP с порогом по SMAP. Расчёт: суточный NDVI (интерполяция ≤ 32 дней, не через снег), `exposure = joint_days / known_days`, `missing` с `missing_reason` вместо нуля, климатология, `top_months`, окна покровных культур по заморозкам POWER; 11 новых правил в `erosion.yaml`. Тесты: снег не бывает «без покрова», неизвестное условие не даёт опасного дня, пороги только из правил, офлайн-демо, новое поле запускает `modis_shoulder` | `backend/app/analytics/bare_soil.py`, `services/bare_soil.py`, `data_sources/{power,modis,smap,registry}.py`, `data_sources/sources.yaml`, `rules/erosion.yaml`, `rules/sources.yaml`, `model/rules.py`, `schemas.py`, `tests/test_bare_soil*.py`, `tests/fixtures/bare_soil/`, `scripts/{build_demo,offline_check,audit_model}.py`, `data/demo/**/power.json`, `docs/audit/`, `docs/contracts/`, `docs/LIMITATIONS.md`, локали | ветка `hackathon/task4-bare-soil-compute` |
+
+## TODO: загрузить MODIS межсезонья и SMAP для демо-полей (на ноутбуке)
+
+В контейнере хакатона MODIS (ORNL TESViS) и SMAP (Earthdata) не скачивались: код `modis_shoulder` и `smap_season`
+проверен только на синтетических ответах (`backend/tests/fixtures/bare_soil/`). Пока данных нет, апрель, вторая
+половина октября и ноябрь в «Часах голой почвы» — `state: missing`, `missing_reason: ndvi_pending_fetch` (не 0),
+летом сухость считается по GWETTOP, а 2015–2020 гг. — по среднему NDVI поля (`ndvi_field_mean_proxy`).
+Сколько месяцев затронуто — `docs/audit/AUDIT_TABLES.md`, раздел «Часы голой почвы».
+
+Нужны: доступ к `modis.ornl.gov`, `cmr.earthdata.nasa.gov`, `opendap.earthdata.nasa.gov` и токен Earthdata
+(https://urs.earthdata.nasa.gov → Generate Token). Время: MODIS ≈ 10–15 мин на поле (≈ 160 запросов по 30–50 с,
+8 параллельно; уже сохранённые ответы в `data/cache/modis_requests` не запрашиваются повторно), SMAP ≈ 15–30 мин
+на поле (≈ 2 500 суточных вырезок).
+
+1. Ветка и зависимости (если ещё не установлены — `make install`):
+
+```bash
+git fetch origin && git checkout hackathon/task4-bare-soil-compute && git pull
+```
+
+2. Токен Earthdata — в `.env` в корне репозитория (файл в `.gitignore`, в git не попадает):
+
+```bash
+echo "EARTHDATA_TOKEN=<ваш токен>" >> .env
+```
+
+3. Загрузка для обоих демо-полей. `--refresh` пересобирает и сезонный ряд `modis`: в нём появятся квантили NDVI
+   `ndvi_q` и счётчики кодов качества, и proxy по среднему NDVI исчезнет:
+
+```bash
+make demo ARGS="--only modis,modis_shoulder,smap_season --refresh"
+```
+
+   Скрипт должен закончиться строкой «Готово: демо-данные собраны.» Если источник не ответил, он пишет
+   «НЕ УДАЛОСЬ» и оставляет прежний файл — тогда повторить команду (готовые запросы берутся из кэша).
+   Проверить, что файлы появились:
+
+```bash
+ls -la data/demo/modis_shoulder.json data/demo/smap_season.json data/demo/fields/kostanay/modis_shoulder.json data/demo/fields/kostanay/smap_season.json
+```
+
+4. Проверки и аудит:
+
+```bash
+make test && make lint && make offline-check && make audit
+```
+
+   В `docs/audit/AUDIT_TABLES.md` в разделе «Часы голой почвы» столбец «Ждут MODIS межсезонья» и столбец
+   «По среднему NDVI» должны стать 0.
+
+5. Коммит и пуш данных:
+
+```bash
+git add data/demo docs/audit && git commit -m "[hackathon] Demo data: MODIS shoulder (DOY 81–305) and SMAP Apr–Oct for both demo fields"
+```
+
+```bash
+git push -u origin hackathon/task4-bare-soil-compute
+```
+
+После этого стоит пересмотреть `cover_crop.min_median_exposure` и `month.min_known_fraction` в `erosion.yaml`
+по новым апрелю и октябрю и заменить синтетические фикстуры настоящими ответами (`backend/tests/fixtures/bare_soil/README.md`).
 
 ## To verify on full text
 

@@ -788,32 +788,258 @@
    2015,
    2025
   ],
-  "cases": [
+  "fields": [
    {
-    "ndvi_max": 0.25,
-    "is_rule_value": false,
-    "status": "missing",
-    "months_ok": 0,
-    "months_snow": 0,
-    "months_total": 132,
-    "bare_days": 0,
-    "joint_days": 0,
-    "top_months": [],
-    "max_median_exposure": null,
-    "climatology_median": {}
+    "id": "demo-akmola-shortandy",
+    "name": "Демо-поле, Шортандинский район",
+    "area_ha": 313.5,
+    "cases": [
+     {
+      "ndvi_max": 0.25,
+      "is_rule_value": false,
+      "status": "partial",
+      "months_ok": 55,
+      "months_partial": 55,
+      "months_snow": 54,
+      "months_missing": 23,
+      "months_total": 132,
+      "missing_by_reason": {
+       "ndvi_pending_fetch": 23
+      },
+      "pending_fetch_by_month": {
+       "4": 11,
+       "10": 11,
+       "11": 1
+      },
+      "proxy_months": 30,
+      "bare_days": 13,
+      "joint_days": 4,
+      "known_days": 1598,
+      "pooled_exposure": 0.0025,
+      "top_months": [],
+      "max_median_exposure": null,
+      "climatology_median": {
+       "1": null,
+       "2": null,
+       "3": null,
+       "4": null,
+       "5": 0.0,
+       "6": 0.0,
+       "7": 0.0,
+       "8": 0.0,
+       "9": 0.0,
+       "10": null,
+       "11": null,
+       "12": null
+      },
+      "cover_crop_windows": [],
+      "effective_thresholds": {
+       "ndvi_max": 0.25,
+       "ndvi_field_quantile": 0.5,
+       "wind_parameter": "WS2M_MAX",
+       "wind_ms": 5.0,
+       "smap_m3m3": 0.1985,
+       "smap_basis": "wilting_point_0_5cm",
+       "gwettop": 0.79,
+       "gwettop_basis": "cdf_match",
+       "gwettop_pairs": 466,
+       "last_frost_spring": "05-08",
+       "first_frost_autumn": "09-25",
+       "frost_years": 11
+      }
+     },
+     {
+      "ndvi_max": 0.3,
+      "is_rule_value": true,
+      "status": "partial",
+      "months_ok": 55,
+      "months_partial": 55,
+      "months_snow": 54,
+      "months_missing": 23,
+      "months_total": 132,
+      "missing_by_reason": {
+       "ndvi_pending_fetch": 23
+      },
+      "pending_fetch_by_month": {
+       "4": 11,
+       "10": 11,
+       "11": 1
+      },
+      "proxy_months": 30,
+      "bare_days": 146,
+      "joint_days": 57,
+      "known_days": 1598,
+      "pooled_exposure": 0.0357,
+      "top_months": [],
+      "max_median_exposure": null,
+      "climatology_median": {
+       "1": null,
+       "2": null,
+       "3": null,
+       "4": null,
+       "5": 0.0,
+       "6": 0.0,
+       "7": 0.0,
+       "8": 0.0,
+       "9": 0.0,
+       "10": null,
+       "11": null,
+       "12": null
+      },
+      "cover_crop_windows": [],
+      "effective_thresholds": {
+       "ndvi_max": 0.3,
+       "ndvi_field_quantile": 0.5,
+       "wind_parameter": "WS2M_MAX",
+       "wind_ms": 5.0,
+       "smap_m3m3": 0.1985,
+       "smap_basis": "wilting_point_0_5cm",
+       "gwettop": 0.79,
+       "gwettop_basis": "cdf_match",
+       "gwettop_pairs": 466,
+       "last_frost_spring": "05-08",
+       "first_frost_autumn": "09-25",
+       "frost_years": 11
+      }
+     }
+    ]
    },
    {
-    "ndvi_max": 0.3,
-    "is_rule_value": true,
-    "status": "missing",
-    "months_ok": 0,
-    "months_snow": 0,
-    "months_total": 132,
-    "bare_days": 0,
-    "joint_days": 0,
-    "top_months": [],
-    "max_median_exposure": null,
-    "climatology_median": {}
+    "id": "demo-kostanay",
+    "name": "Демо-поле, Костанайский район",
+    "area_ha": 290.3,
+    "cases": [
+     {
+      "ndvi_max": 0.25,
+      "is_rule_value": false,
+      "status": "partial",
+      "months_ok": 50,
+      "months_partial": 50,
+      "months_snow": 48,
+      "months_missing": 34,
+      "months_total": 132,
+      "missing_by_reason": {
+       "ndvi_gap": 7,
+       "ndvi_not_covered": 1,
+       "ndvi_pending_fetch": 26
+      },
+      "pending_fetch_by_month": {
+       "4": 11,
+       "10": 9,
+       "11": 6
+      },
+      "proxy_months": 25,
+      "bare_days": 199,
+      "joint_days": 67,
+      "known_days": 1448,
+      "pooled_exposure": 0.0463,
+      "top_months": [
+       5
+      ],
+      "max_median_exposure": 0.1286,
+      "climatology_median": {
+       "1": null,
+       "2": null,
+       "3": null,
+       "4": null,
+       "5": 0.1286,
+       "6": 0.0,
+       "7": 0.0,
+       "8": 0.0,
+       "9": 0.0,
+       "10": null,
+       "11": null,
+       "12": null
+      },
+      "cover_crop_windows": [
+       {
+        "start": "05-08",
+        "end": "05-31",
+        "uncertainty": "medium"
+       }
+      ],
+      "effective_thresholds": {
+       "ndvi_max": 0.25,
+       "ndvi_field_quantile": 0.5,
+       "wind_parameter": "WS2M_MAX",
+       "wind_ms": 5.0,
+       "smap_m3m3": 0.2229,
+       "smap_basis": "wilting_point_0_5cm",
+       "gwettop": 0.7,
+       "gwettop_basis": "cdf_match",
+       "gwettop_pairs": 609,
+       "last_frost_spring": "05-07",
+       "first_frost_autumn": "09-29",
+       "frost_years": 11
+      }
+     },
+     {
+      "ndvi_max": 0.3,
+      "is_rule_value": true,
+      "status": "partial",
+      "months_ok": 50,
+      "months_partial": 50,
+      "months_snow": 48,
+      "months_missing": 34,
+      "months_total": 132,
+      "missing_by_reason": {
+       "ndvi_gap": 7,
+       "ndvi_not_covered": 1,
+       "ndvi_pending_fetch": 26
+      },
+      "pending_fetch_by_month": {
+       "4": 11,
+       "10": 9,
+       "11": 6
+      },
+      "proxy_months": 25,
+      "bare_days": 575,
+      "joint_days": 194,
+      "known_days": 1448,
+      "pooled_exposure": 0.134,
+      "top_months": [
+       5,
+       9,
+       6
+      ],
+      "max_median_exposure": 0.3261,
+      "climatology_median": {
+       "1": null,
+       "2": null,
+       "3": null,
+       "4": null,
+       "5": 0.3261,
+       "6": 0.0834,
+       "7": 0.0,
+       "8": 0.0,
+       "9": 0.2667,
+       "10": null,
+       "11": null,
+       "12": null
+      },
+      "cover_crop_windows": [
+       {
+        "start": "05-08",
+        "end": "05-31",
+        "uncertainty": "medium"
+       }
+      ],
+      "effective_thresholds": {
+       "ndvi_max": 0.3,
+       "ndvi_field_quantile": 0.5,
+       "wind_parameter": "WS2M_MAX",
+       "wind_ms": 5.0,
+       "smap_m3m3": 0.2229,
+       "smap_basis": "wilting_point_0_5cm",
+       "gwettop": 0.7,
+       "gwettop_basis": "cdf_match",
+       "gwettop_pairs": 609,
+       "last_frost_spring": "05-07",
+       "first_frost_autumn": "09-29",
+       "frost_years": 11
+      }
+     }
+    ]
    }
   ]
  },
@@ -1076,13 +1302,13 @@
   }
  },
  "rule_counts": {
-  "total": 118,
+  "total": 129,
   "verified": 22,
   "by_evidence": {
    "literature": 16,
    "agronomist_review": 35,
-   "preliminary": 54,
-   "definition": 13
+   "preliminary": 64,
+   "definition": 14
   }
  }
 }

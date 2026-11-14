@@ -30,6 +30,12 @@ EROSION_REQUIRED = {
     "dry_topsoil": ("smap_wilting_point_factor", "smap_fallback_m3m3", "gwettop_min_pairs", "gwettop_fallback"),
     "snow": ("modis_reliability_snow", "modis_min_field_fraction", "power_frsno_min", "power_snodp_min_cm",
              "month_snow_day_fraction"),
+    "ndvi_daily": ("min_valid_fraction", "max_interp_gap_days"),
+    "month": ("min_known_fraction",),
+    "climatology": ("min_years",),
+    "headline": ("top_n",),
+    "cover_crop": ("min_median_exposure", "frost_t2m_min_c", "min_frost_free_days", "min_years_medium_uncertainty",
+                   "min_years_low_uncertainty", "max_partial_share_low_uncertainty"),
 }
 #: Параметр POWER для ветра должен соответствовать высоте, к которой относится порог.
 WIND_PARAMETERS = {2: ("WS2M", "WS2M_MAX"), 10: ("WS10M", "WS10M_MAX")}
@@ -322,6 +328,21 @@ def _validate_erosion(e: Any) -> None:
     num("snow", "power_frsno_min", 0.0, 1.0, open_lo=True)
     num("snow", "power_snodp_min_cm", 0.0, 100.0)
     num("snow", "month_snow_day_fraction", 0.0, 1.0, open_lo=True)
+
+    num("ndvi_daily", "min_valid_fraction", 0.0, 1.0, open_lo=True)
+    num("ndvi_daily", "max_interp_gap_days", 16, 366)
+    num("month", "min_known_fraction", 0.0, 1.0, open_lo=True)
+    for group, key in (("climatology", "min_years"), ("headline", "top_n"), ("cover_crop", "min_frost_free_days"),
+                       ("cover_crop", "min_years_medium_uncertainty"), ("cover_crop", "min_years_low_uncertainty")):
+        if num(group, key, 1, 366) != int(e[group][key].value):
+            raise RulesError(f"erosion.{group}.{key}: must be an integer")
+    if e["cover_crop"]["min_years_medium_uncertainty"].value > e["cover_crop"]["min_years_low_uncertainty"].value:
+        raise RulesError("erosion.cover_crop: min_years_medium_uncertainty must not exceed min_years_low_uncertainty")
+    num("cover_crop", "min_median_exposure", 0.0, 1.0)
+    num("cover_crop", "frost_t2m_min_c", -10.0, 5.0)
+    num("cover_crop", "max_partial_share_low_uncertainty", 0.0, 1.0)
+    if e["cover_crop"].get("season_split_month") not in range(1, 12):
+        raise RulesError("erosion.cover_crop.season_split_month: must be a month number 1–11")
 
     for cid, ref in (e.get("contract_thresholds") or {}).items():
         node: Any = e

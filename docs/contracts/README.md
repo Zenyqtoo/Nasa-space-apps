@@ -10,11 +10,17 @@
 
 ### Определение показателя
 
-`exposure` — доля дней месяца, когда в один и тот же день:
+`exposure` — доля **известных** дней месяца, когда в один и тот же день:
 
 1. **нет зелёного покрова (открытая почва или стерня)** — NDVI MOD13Q1 ниже порога;
 2. **эрозионный ветер** — максимальная часовая скорость ветра на 2 м (POWER `WS2M_MAX`) не ниже порога;
 3. **сухой верхний слой** — SMAP ниже влажности завядания слоя 0–5 см, или GWETTOP ниже порога, подобранного по SMAP.
+
+`exposure = joint_days / known_days`, где `known_days` — дни месяца, когда известны **все три** условия
+(день с неизвестным условием не входит ни в `joint_days`, ни в `known_days`). Месяц считается (`state: ok`), если
+`known_days / days_in_month ≥ month.min_known_fraction` (0,5 в `erosion.yaml`). Деление на известные дни, а не на
+все дни месяца: иначе частично известные весенние и осенние месяцы — самые опасные — выглядели бы безопаснее.
+Снежный день известен и не бывает «без покрова».
 
 NDVI не отличает стерню от открытой почвы. Поэтому там, где стерня оставлена стоять, `exposure` — **верхняя оценка
 риска**: стоящие остатки сильно снижают выдувание. Поле `bare_days` означает дни без зелёного покрова (открытая почва
@@ -41,13 +47,21 @@ NDVI не отличает стерню от открытой почвы. Поэ
 | `loading` | пока ничего не посчитано, фоновые загрузки идут |
 | `missing` | посчитать нельзя (нет данных) |
 
-Сейчас (каркас, задача 2) всегда возвращается `missing`.
+Будущие месяцы (`missing_reason: future`) на статус не влияют.
 
 ### Состояние месяца
 
-- `state`: `ok` — посчитан; `snow` — снежный покров не меньше половины дней месяца, эрозия не оценивается; `missing` — нет данных.
+- `state`: `ok` — посчитан; `snow` — снежный покров не меньше половины дней месяца, эрозия не оценивается; `missing` — нет данных
+  (известных дней меньше `month.min_known_fraction`). У `missing` числа — `null`, **не 0**.
+- `known_days` *(добавлено в задаче 4)* — дни, когда известны все три условия; знаменатель `exposure`.
+- `missing_reason` *(добавлено в задаче 4, только при `state: missing`)*: `future` — после последнего дня POWER;
+  `no_weather` — нет ветра POWER; `ndvi_pending_fetch` — нужный ряд MODIS (сезон или межсезонье) ещё не загружен;
+  `ndvi_gap` — ряд загружен, но годного композита нет (облака, длинный разрыв); `ndvi_not_covered` — зима вне окон
+  MODIS без снежного покрова; `no_moisture` — нет ни SMAP, ни GWETTOP.
+- `moisture_source`: `smap` | `power_gwettop` | `mixed` (в одни дни месяца SMAP, в другие GWETTOP).
 - `quality: partial` ставится и тогда, когда сухость верхнего слоя определялась по POWER GWETTOP, а не по SMAP (`moisture_source: power_gwettop`).
-- `quality`: `ok` | `partial` | `missing`.
+- `quality`: `ok` | `partial` | `missing`. `partial` — также когда известны не все дни месяца или «нет покрова»
+  решено по среднему NDVI поля (предупреждение `ndvi_field_mean_proxy`).
 - `bare_days`, `erosive_wind_days`, `dry_days`, `joint_days`, `exposure`, `moisture_source` могут быть `null`.
 - `days_in_month` есть всегда, в високосные годы февраль — 29.
 
@@ -55,5 +69,14 @@ NDVI не отличает стерню от открытой почвы. Поэ
 
 - `sources` — список в форме `monitoring.source_meta` (не словарь, как в `/monitoring`).
 - `warnings` — `{code, source, params}`, как `DataWarning`.
-- `jobs` — `{source, status, job}`, где `job` — состояние фоновой задачи (как в `/api/jobs/{id}`).
+- `jobs` — `{source, status, job}`, где `job` — состояние фоновой задачи (как в `/api/jobs/{id}`). Только реально
+  запущенные загрузки: `modis`, `modis_shoulder`, `smap_season`; недоступность без задачи (нет сети, нет токена) — в `warnings`.
+- `effective_thresholds` *(добавлено в задаче 4, необязательное)* — пороги, фактически применённые к полю: θ_wp слоя
+  0–5 см из SoilGrids, порог GWETTOP (`cdf_match` по SMAP или `fallback`), медианы дат заморозков.
+- `headline.top_months` — до `headline.top_n` месяцев с наибольшей медианой exposure (> 0), по убыванию.
+- `cover_crop_windows[].needs_review` *(добавлено в задаче 4)* — языки текста `basis`, требующие вычитки (`["kk"]`).
+  `uncertainty`: `low` | `medium` | `high` по числу лет и доле частичных месяцев (`cover_crop` в `erosion.yaml`).
+- Коды `warnings`: `cell_larger_than_field` (POWER, SMAP), `smap_before_2015_unavailable`, `moisture_fallback_gwettop`,
+  `gwettop_threshold_fallback`, `smap_threshold_fallback`, `ndvi_field_mean_proxy`, `ndvi_pending_fetch`,
+  `offline_no_cache`, `source_unavailable`, `smap_not_configured`, `power_without_wind`, `bare_soil_no_weather`.
 - Казахские тексты требуют вычитки носителем языка.

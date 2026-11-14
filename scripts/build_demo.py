@@ -3,13 +3,16 @@
 
 Что сохраняется:
     field.json      контур, область, история (демо-сценарий), приоритет
-    power.json      NASA POWER, суточный ряд с 1981 г.
-    modis.json      MODIS MOD13Q1: ряд NDVI по полю и пиксельные растры
-    soilgrids.json  ISRIC SoilGrids: почва по слоям до 1 м
-    smap.json       SMAP SPL3SMP_E: влажность почвы в апреле–мае (нужен EARTHDATA_TOKEN)
+    power.json           NASA POWER, суточный ряд с 1981 г. (осадки, температура, GWETTOP, ветер, снег)
+    modis.json           MODIS MOD13Q1, сезон (DOY 129–273): ряд NDVI по полю и пиксельные растры
+    modis_shoulder.json  MODIS MOD13Q1, весна и осень (DOY 81–113, 289–305) для «Часов голой почвы»
+    soilgrids.json       ISRIC SoilGrids: почва по слоям до 1 м
+    smap.json            SMAP SPL3SMP_E: влажность почвы в апреле–мае (нужен EARTHDATA_TOKEN)
+    smap_season.json     SMAP SPL3SMP_E: апрель–октябрь для «Часов голой почвы» (нужен EARTHDATA_TOKEN)
 
 Запуск (нужен интернет):
-    cd backend && .venv/bin/python ../scripts/build_demo.py [--only power,modis,soilgrids,smap]
+    cd backend && .venv/bin/python ../scripts/build_demo.py [--only power,modis,...] [--field kostanay] [--refresh]
+    make demo ARGS="--only modis,modis_shoulder,smap_season --refresh"
 
 Если какой-то источник недоступен, уже сохранённый файл не трогается.
 """
@@ -90,7 +93,8 @@ KOSTANAY_FIELD = {
 
 FIELDS = {"shortandy": (DEMO_FIELD, None), "kostanay": (KOSTANAY_FIELD, "kostanay")}
 
-PERIODS = {"power": POWER_START, "soilgrids": POWER_START, "modis": MODIS_START, "smap": SMAP_START}
+PERIODS = {"power": POWER_START, "soilgrids": POWER_START, "modis": MODIS_START, "modis_shoulder": MODIS_START,
+           "smap": SMAP_START, "smap_season": SMAP_START}
 
 
 def progress_printer(name: str):
@@ -148,7 +152,7 @@ async def build(key: str, wanted: list[str], refresh: bool) -> list[str]:
 
 async def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--only", default="power,soilgrids,modis,smap")
+    parser.add_argument("--only", default=",".join(PERIODS))
     parser.add_argument("--field", default="all", help="shortandy | kostanay | all")
     parser.add_argument("--refresh", action="store_true", help="скачать заново, не используя кэш")
     args = parser.parse_args()

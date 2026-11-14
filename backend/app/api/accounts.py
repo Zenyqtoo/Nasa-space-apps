@@ -213,7 +213,7 @@ async def field_bare_soil(field_id: int, start_year: int | None = None, end_year
     """Часы голой почвы по месяцам. Форма ответа — docs/contracts/bare_soil.example.json."""
     try:
         f = fs.get_field(user["id"], field_id)
-        return bare_soil_svc.bare_soil(f["id"], f["geometry"], start_year, end_year)
+        return await bare_soil_svc.bare_soil(f["id"], f["geometry"], start_year, end_year)
     except HANDLED as exc:
         raise _err(exc) from exc
 

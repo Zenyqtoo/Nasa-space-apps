@@ -259,6 +259,15 @@
     "soil_is_model_map": "SoilGrids soil is a global modelled map, not an analysis of your field.",
     "soil_missing_awc": "No soil data: water-holding capacity does not limit the moisture stock in the calculation.",
     "soil_humus_suspicious": "SoilGrids gives humus ≈ {{humus_pct}} % in the 0–30 cm layer — this looks overestimated for arable land in Northern Kazakhstan. Check with a soil test.",
+    "cell_larger_than_field": "The {{source}} cell (~{{cell_km2}} km²) is larger than the field ({{field_km2}} km²): the value describes the area around the field.",
+    "smap_before_2015_unavailable": "SMAP starts on 31 Mar 2015: for earlier years topsoil dryness is estimated from POWER GWETTOP.",
+    "moisture_fallback_gwettop": "In {{months}} months topsoil dryness was estimated (fully or partly) from the POWER GWETTOP model wetness instead of SMAP; these months are marked partial.",
+    "gwettop_threshold_fallback": "Few common SMAP and GWETTOP days ({{pairs}}): the GWETTOP threshold {{value}} comes from the rules, not fitted to the field.",
+    "smap_threshold_fallback": "No SoilGrids data: the SMAP dryness threshold {{value}} m³/m³ comes from the rules, not from the field's wilting point.",
+    "ndvi_field_mean_proxy": "In {{months}} months 'no green cover' was decided from the field-mean NDVI rather than the share of pixels (older demo data without pixel rasters); these months are marked partial.",
+    "ndvi_pending_fetch": "Spring and autumn NDVI ({{source}}) has not been downloaded yet: {{months}} months are not computed yet.",
+    "power_without_wind": "The stored NASA POWER data have no wind: the Bare Soil Clock will be computed after the data are refreshed.",
+    "bare_soil_no_weather": "No NASA POWER weather for this field: the Bare Soil Clock is not computed (another field's climate is not substituted).",
     "network": "No connection to the server"
   },
   "groups": {

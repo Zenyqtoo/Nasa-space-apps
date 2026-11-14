@@ -12,10 +12,15 @@
 предпосевные месяцы (апрель–май). В расчёт идут измерения с признаком
 «рекомендуемое качество» (бит 0 флага ``retrieval_qual_flag`` равен 0);
 мёрзлая почва и снег этим флагом отсекаются.
+
+``SmapSeasonSource`` (``smap_season``) — тот же источник за апрель–октябрь, для «Часов голой почвы»:
+суточная влажность верхнего слоя в течение всего бесснежного периода. Ответы OPeNDAP кэшируются
+по грануле, поэтому апрель–май, уже скачанные источником ``smap``, повторно не запрашиваются.
 """
 from __future__ import annotations
 
 import asyncio
+import calendar
 import math
 from datetime import date
 
@@ -32,6 +37,8 @@ CMR_GRANULES = "https://cmr.earthdata.nasa.gov/search/granules.json"
 OPENDAP = f"https://opendap.earthdata.nasa.gov/collections/{COLLECTION}/granules"
 FIRST_DAY = date(2015, 3, 31)
 PRESOWING_MONTHS = (4, 5)
+#: бесснежный период для «Часов голой почвы»; мёрзлую почву отсекает флаг качества
+SEASON_MONTHS = (4, 5, 6, 7, 8, 9, 10)
 FILL = -9999.0
 REQUEST_CACHE = "smap_requests"
 WINDOW = 1  # ячеек в каждую сторону от центральной: окно 3x3
@@ -111,22 +118,28 @@ async def _auth_headers() -> dict[str, str]:
     raise SourceNotConfigured("EARTHDATA_TOKEN is not set")
 
 
-async def _list_granules(client: httpx.AsyncClient, year: int) -> dict[str, str]:
-    """{дата: OPeNDAP-ссылка гранулы} за апрель–май указанного года (каталог CMR, без авторизации).
+async def _list_granules(
+    client: httpx.AsyncClient, year: int, months: tuple[int, ...] = PRESOWING_MONTHS
+) -> dict[str, str]:
+    """{дата: OPeNDAP-ссылка гранулы} за месяцы ``months`` указанного года (каталог CMR, без авторизации).
 
     Ссылку берём из записи CMR, а не собираем из имени файла: у свежих гранул
     идентификатор в каталоге (GranuleUR) отличается от имени файла.
     """
-    key = cache.make_key(REQUEST_CACHE, kind="granule_links", year=year, stamp=date.today().strftime("%Y-%m"))
+    parts: dict = {"kind": "granule_links", "year": year, "stamp": date.today().strftime("%Y-%m")}
+    if tuple(months) != PRESOWING_MONTHS:
+        # прежний ключ для апреля–мая не меняется, чтобы сохранённые списки оставались в силе
+        parts["months"] = ",".join(str(m) for m in months)
+    key = cache.make_key(REQUEST_CACHE, **parts)
     hit = cache.read(REQUEST_CACHE, key)
     if hit is not None:
         return hit["granules"]
-    m0, m1 = PRESOWING_MONTHS[0], PRESOWING_MONTHS[-1]
-    last_day = 31 if m1 in (1, 3, 5, 7, 8, 10, 12) else 30
+    m0, m1 = min(months), max(months)
+    last_day = calendar.monthrange(year, m1)[1]
     params = {
         "collection_concept_id": COLLECTION,
         "temporal": f"{year}-{m0:02d}-01T00:00:00Z,{year}-{m1:02d}-{last_day}T23:59:59Z",
-        "page_size": 200,
+        "page_size": 2000,
         "sort_key": "start_date",
     }
     resp = await client.get(CMR_GRANULES, params=params)
@@ -138,7 +151,7 @@ async def _list_granules(client: httpx.AsyncClient, year: int) -> dict[str, str]
         link = next((l["href"] for l in entry.get("links", []) if "opendap.earthdata.nasa.gov" in l.get("href", "")), None)
         if link is None and entry.get("title"):
             link = f"{OPENDAP}/{entry['title']}"
-        if day and link and int(day[5:7]) in PRESOWING_MONTHS:
+        if day and link and int(day[5:7]) in months:
             out[day] = link  # при нескольких версиях остаётся последняя по сортировке
     cache.write(REQUEST_CACHE, key, {"granules": out})
     return out
@@ -214,6 +227,7 @@ async def _request_day(
 
 class SmapSource(DataSource):
     id = "smap"
+    months: tuple[int, ...] = PRESOWING_MONTHS
 
     @property
     def enabled(self) -> bool:  # type: ignore[override]
@@ -238,7 +252,7 @@ class SmapSource(DataSource):
         async with http_client(timeout=120.0) as client:
             granules: dict[str, str] = {}
             for year in years:
-                listed = await _list_granules(client, year)
+                listed = await _list_granules(client, year, self.months)
                 granules.update({d: g for d, g in listed.items() if FIRST_DAY.isoformat() <= d <= end.isoformat()})
             total = len(granules)
             if total == 0:
@@ -265,7 +279,7 @@ class SmapSource(DataSource):
         lon_c, lat_c = cell_center(row, col)
         return {
             "product": PRODUCT,
-            "months": list(PRESOWING_MONTHS),
+            "months": list(self.months),
             "cell": {"row": row, "col": col, "lon": round(lon_c, 5), "lat": round(lat_c, 5)},
             "window_cells": 2 * WINDOW + 1,
             "unit": "m3/m3",
@@ -276,3 +290,10 @@ class SmapSource(DataSource):
             "n_failed": failed,
             "partial": failed > 0,
         }
+
+
+class SmapSeasonSource(SmapSource):
+    """SMAP за апрель–октябрь — суточная влажность верхнего слоя для «Часов голой почвы»."""
+
+    id = "smap_season"
+    months = SEASON_MONTHS
