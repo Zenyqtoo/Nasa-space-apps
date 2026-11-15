@@ -224,6 +224,19 @@ class CoverCropWindow(BaseModel):
     needs_review: list[str] = Field(default_factory=list)
 
 
+class CoverCropNote(BaseModel):
+    """Почему окна покровной культуры нет (только при пустом cover_crop_windows)."""
+    #: no_harvest_date | no_frost_data | no_risky_months | risk_before_harvest_only | frost_before_establishment
+    reason: str
+    basis: LocalizedText
+    #: что делать вместо покровной культуры — общая рекомендация (advice_scope: general_guidance), не для поля
+    advice: LocalizedText | None = None
+    advice_scope: Literal["general_guidance"] | None = None
+    #: источник рекомендации: {id, name, url, note}; note — как источник проверен
+    advice_source: dict[str, str] | None = None
+    needs_review: list[str] = Field(default_factory=list)
+
+
 class BareSoilOut(BaseModel):
     field_id: int
     period: BareSoilPeriod
@@ -239,5 +252,7 @@ class BareSoilOut(BaseModel):
     years: list[BareSoilYear]
     climatology: list[BareSoilClimatology] = Field(default_factory=list)
     cover_crop_windows: list[CoverCropWindow] = Field(default_factory=list)
+    #: почему окон нет (null, если окна есть или расчёт не выполнялся)
+    cover_crop_note: CoverCropNote | None = None
     sources: list[SourceMetaOut]
     warnings: list[DataWarningOut] = Field(default_factory=list)

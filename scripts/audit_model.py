@@ -373,8 +373,45 @@ def _bare_soil_case(body: dict, t: float, current: float) -> dict:
         "max_median_exposure": body["headline"]["max_median_exposure"],
         "climatology_median": {c["month"]: c["exposure_median"] for c in body["climatology"]},
         "cover_crop_windows": [{k: w[k] for k in ("start", "end", "uncertainty")} for w in body["cover_crop_windows"]],
+        "cover_crop_note": body["cover_crop_note"],
         "effective_thresholds": body["effective_thresholds"],
     }
+
+
+def gwettop_vs_smap_by_month(directory: Path, eff: dict, rules) -> list[dict]:
+    """Доля сухих дней по месяцам: SMAP (< θ_wp) и GWETTOP (< порога поля, подобранного по всем месяцам сразу).
+    Показывает, совпадает ли GWETTOP с SMAP в каждом месяце, а не только в среднем за апрель–октябрь."""
+    from app.analytics import bare_soil as bs
+
+    def read(name):
+        p = directory / name
+        return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
+
+    power = read("power.json")
+    if not power or not eff:
+        return []
+    df = bs.power_frame(power)
+    years = range(BARE_SOIL_PERIOD[0], BARE_SOIL_PERIOD[1] + 1)
+    df = df[df.index.year.isin(years)]
+    sm = bs.smap_days(read("smap.json"), read("smap_season.json"))
+    sm = sm[sm.index.year.isin(years)]
+    snow = bs.power_snow(df, rules.erosion)
+    gw = df["GWETTOP"].astype(float)
+    common = sm.index.intersection(gw.dropna().index)
+    common = common[~snow.reindex(common, fill_value=False).to_numpy(dtype=bool)]
+    out = []
+    for m in range(4, 11):
+        days = df.index[(df.index.month == m) & ~snow.to_numpy(dtype=bool)]
+        c = common[common.month == m]
+        if len(days) == 0 or len(c) == 0:
+            continue
+        smap_dry = float((sm.loc[c] < eff["smap_m3m3"]).mean())
+        out.append({"month": m, "days": len(days), "smap_days": int(sm.index.isin(days).sum()), "pairs": len(c),
+                    "smap_dry_share": round(smap_dry, 3),
+                    "gwettop_dry_share_same_days": round(float((gw.loc[c] < eff["gwettop"]).mean()), 3),
+                    "gwettop_month_threshold": round(float(np.quantile(gw.loc[c], smap_dry)) if smap_dry > 0
+                                                     else float(gw.loc[c].min()), 3)})
+    return out
 
 
 async def bare_soil_sensitivity(rules) -> list[dict]:
@@ -388,9 +425,12 @@ async def bare_soil_sensitivity(rules) -> list[dict]:
         cases = []
         for t in rules.erosion["bare_soil"]["sensitivity_values"]:
             body = await bare_soil(0, rec["geometry"], *BARE_SOIL_PERIOD,
-                                   rules=patch_erosion(rules, "bare_soil", "ndvi_max", t), start_jobs=False)
+                                   rules=patch_erosion(rules, "bare_soil", "ndvi_max", t), start_jobs=False,
+                                   region=rec["region"])
             cases.append(_bare_soil_case(body, t, current))
-        out.append({"id": rec["id"], "name": rec["name"]["ru"], "area_ha": rec.get("area_ha"), "cases": cases})
+        eff = next(c for c in cases if c["is_rule_value"])["effective_thresholds"]
+        out.append({"id": rec["id"], "name": rec["name"]["ru"], "area_ha": rec.get("area_ha"), "cases": cases,
+                    "dry_by_month": gwettop_vs_smap_by_month(Path(rec["_dir"]), eff, rules)})
     return out
 
 
@@ -604,10 +644,16 @@ def write_markdown(r: dict, rules) -> None:
             med = c["climatology_median"]
             L.append(f"| {f['name']} | < {num(c['ndvi_max'])} | " +
                      " | ".join(num(med.get(m, med.get(str(m)))) for m in range(1, 13)) + " |")
+    rule_cases = [next(x for x in f["cases"] if x["is_rule_value"]) for f in bsr["fields"]]
+    n_pending = sum(c["missing_by_reason"].get("ndvi_pending_fetch", 0) for c in rule_cases)
+    n_proxy = sum(c["proxy_months"] for f in bsr["fields"] for c in f["cases"])
     L += ["", "### Месяцы, которые ждут загрузки MODIS межсезонья (`missing_reason: ndvi_pending_fetch`)", "",
-          "Весенние (DOY 81–113, ≈ 22 марта – 8 мая) и осенние (DOY 289–305, ≈ 16 октября – 16 ноября) композиты MOD13Q1 "
-          "в `data/demo` ещё не скачаны (`modis_shoulder`, TODO в `docs/HACKATHON_LOG.md`). Пока их нет, эти месяцы — "
-          "`state: missing`, а не 0. Число лет периода, в которых месяц не посчитан по этой причине:", "",
+          ("Весенние (DOY 81–113, ≈ 22 марта – 8 мая) и осенние (DOY 289–305, ≈ 16 октября – 16 ноября) композиты "
+           "MOD13Q1 (`modis_shoulder`) в `data/demo` ещё не скачаны (TODO в `docs/HACKATHON_LOG.md`). Пока их нет, эти "
+           "месяцы — `state: missing`, а не 0." if n_pending else
+           "Весенние (DOY 81–113) и осенние (DOY 289–305) композиты MOD13Q1 (`modis_shoulder`) в `data/demo` загружены "
+           "для обоих полей; месяцев, ждущих загрузки, нет.") +
+          " Число лет периода, в которых месяц не посчитан по этой причине:", "",
           "| Поле | " + " | ".join(MONTH_RU) + " |", "|---|" + "---|" * 12]
     for f in bsr["fields"]:
         c = next(x for x in f["cases"] if x["is_rule_value"])
@@ -619,10 +665,11 @@ def write_markdown(r: dict, rules) -> None:
           "`future` — месяцы после последнего дня POWER, `ndvi_not_covered` — зима вне окон MODIS без снежного покрова "
           "(меньше половины дней со снегом), `ndvi_gap` — нет годного композита (облака).", "",
           "### Месяцы, где «нет зелёного покрова» определено по среднему NDVI поля (proxy)", "",
-          "В `data/demo/modis.json` пиксельные растры есть только за 2021–2026 гг., квантилей NDVI (`ndvi_q`) нет: для "
-          "2015–2020 гг. доля пикселей ниже порога недоступна, и день считается «без покрова», если ниже порога среднее "
-          "NDVI поля. Такие месяцы — `quality: partial`, предупреждение `ndvi_field_mean_proxy`. После перезагрузки "
-          "MODIS (TODO в журнале) proxy исчезнет.", "",
+          ("Если у композита нет квантилей NDVI (`ndvi_q`) и пиксельного растра, день считается «без покрова», когда "
+           "ниже порога среднее NDVI поля. Такие месяцы — `quality: partial`, предупреждение `ndvi_field_mean_proxy`. "
+           "Перезагрузите MODIS (`make demo ARGS=\"--only modis --refresh\"`), чтобы proxy исчез." if n_proxy else
+           "У всех композитов MOD13Q1 в `data/demo` есть квантили NDVI (`ndvi_q`), поэтому среднее NDVI поля "
+           "(proxy, предупреждение `ndvi_field_mean_proxy`) нигде не используется."), "",
           "| Поле | Порог NDVI | Месяцев по среднему NDVI |", "|---|---|---|"]
     for f in bsr["fields"]:
         for c in f["cases"]:
@@ -632,6 +679,28 @@ def write_markdown(r: dict, rules) -> None:
                      f"{num(eff['gwettop'], 2)} ({eff['gwettop_basis']}, {eff['gwettop_pairs']} общих дней), "
                      f"медианы заморозков {eff['last_frost_spring']} / {eff['first_frost_autumn']}")
         (next(x for x in f["cases"] if x["is_rule_value"])["effective_thresholds"]) for f in bsr["fields"]) + "."]
+    L += ["", "### Окна покровных культур (порог из правил)", "",
+          "Окно начинается не раньше типичного окончания уборки в области (`cover_crop.harvest_end`) и кончается до "
+          "медианы первого осеннего заморозка; от начала окна до заморозка — не меньше `cover_crop.min_frost_free_days`.",
+          "", "| Поле | Уборка до | Первый заморозок | Окна | Почему окна нет |", "|---|---|---|---|---|"]
+    for f in bsr["fields"]:
+        c = next(x for x in f["cases"] if x["is_rule_value"])
+        eff, note = c["effective_thresholds"], c["cover_crop_note"]
+        wins = ", ".join(f"{w['start']}…{w['end']} ({w['uncertainty']})" for w in c["cover_crop_windows"]) or "нет"
+        L.append(f"| {f['name']} | {eff.get('harvest_end')} | {eff['first_frost_autumn']} | {wins} | "
+                 f"{(note['reason'] + ': ' + note['basis']['ru']) if note else ''} |")
+    L += ["", "### Сухой верхний слой: GWETTOP и SMAP по месяцам", "",
+          "Порог GWETTOP подобран по всем общим бесснежным дням апреля–октября сразу (`dry_topsoil.gwettop_method: "
+          "cdf_match`). Таблица проверяет, совпадает ли доля сухих дней GWETTOP с SMAP **в каждом месяце** на общих днях; "
+          "«порог при подборе по месяцу» — какой порог дал бы совпадение в этом месяце (справочно, в расчёте не "
+          "используется). GWETTOP применяется только в дни без SMAP. См. `docs/MODEL_AUDIT.md`, раздел 6.", "",
+          "| Поле | Месяц | Бесснежных дней | Из них со SMAP | Сухо по SMAP | Сухо по GWETTOP (порог поля) | "
+          "Порог при подборе по месяцу |", "|---|---|---|---|---|---|---|"]
+    for f in bsr["fields"]:
+        for r in f.get("dry_by_month", []):
+            L.append(f"| {f['name']} | {MONTH_RU[r['month'] - 1]} | {r['days']} | {r['smap_days']} | "
+                     f"{r['smap_dry_share'] * 100:.0f} % | {r['gwettop_dry_share_same_days'] * 100:.0f} % | "
+                     f"{num(r['gwettop_month_threshold'], 2)} |")
     (OUT / "AUDIT_TABLES.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 

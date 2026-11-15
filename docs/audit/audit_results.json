@@ -1,5 +1,5 @@
 {
- "run_date": "2026-11-14",
+ "run_date": "2026-11-15",
  "start_year": 2027,
  "field": {
   "area_ha": 313.5,
@@ -199,8 +199,6 @@
    2008,
    2009,
    2010,
-   2011,
-   2012,
    2013,
    2014,
    2015,
@@ -228,8 +226,6 @@
    0.4547,
    0.5315,
    0.3282,
-   0.6654,
-   0.3381,
    0.6998,
    0.4452,
    0.6204,
@@ -246,53 +242,51 @@
    0.595
   ],
   "precip": [
-   142.52000000000004,
-   171.58000000000007,
-   126.44000000000001,
+   142.52,
+   171.58,
+   126.44,
    170.63,
-   134.14999999999998,
-   193.66999999999993,
-   137.03000000000003,
+   134.15,
+   193.67,
+   137.03,
    138.72,
-   118.16000000000003,
+   118.16,
    210.71,
    90.1,
-   203.76,
-   128.44000000000003,
    235.84,
-   144.54000000000005,
-   227.37000000000003,
-   185.73999999999998,
+   144.54,
+   227.37,
+   185.74,
    122.44,
    247.09,
    138.11,
-   143.92999999999998,
-   122.00000000000001,
+   143.93,
+   122.0,
    120.72,
-   89.89999999999998,
-   344.84,
+   89.9,
+   344.84000000000003,
    219.16,
    148.37
   ],
   "pearson_precip_ndvi": [
-   0.563,
-   0.0022
+   0.551,
+   0.0043
   ],
   "spearman_precip_ndvi": [
-   0.57,
-   0.0019
+   0.563,
+   0.0034
   ],
   "pearson_water_ndvi": [
-   0.6,
-   0.0009
+   0.58,
+   0.0024
   ],
-  "n_water": 27,
+  "n_water": 25,
   "dry_vs_other": {
    "dry_mean": 0.479,
-   "other_mean": 0.598,
+   "other_mean": 0.608,
    "n_dry": 6,
-   "n_other": 21,
-   "mannwhitney_p_less": 0.0109
+   "n_other": 19,
+   "mannwhitney_p_less": 0.007
   }
  },
  "hindcast": {
@@ -306,8 +300,6 @@
    2008,
    2009,
    2010,
-   2011,
-   2012,
    2013,
    2014,
    2015,
@@ -333,8 +325,6 @@
    0.757,
    1.258,
    0.697,
-   1.184,
-   0.758,
    1.66,
    0.902,
    1.614,
@@ -360,8 +350,6 @@
    0.818,
    0.956,
    0.59,
-   1.197,
-   0.608,
    1.259,
    0.801,
    1.116,
@@ -377,9 +365,9 @@
    1.096,
    1.07
   ],
-  "pearson": 0.623,
-  "cv_model": 0.328,
-  "cv_ndvi": 0.213,
+  "pearson": 0.607,
+  "cv_model": 0.33,
+  "cv_ndvi": 0.2,
   "dry_mean_model": 0.788,
   "dry_mean_ndvi": 0.861
  },
@@ -798,41 +786,62 @@
       "ndvi_max": 0.25,
       "is_rule_value": false,
       "status": "partial",
-      "months_ok": 55,
-      "months_partial": 55,
+      "months_ok": 75,
+      "months_partial": 75,
       "months_snow": 54,
-      "months_missing": 23,
+      "months_missing": 3,
       "months_total": 132,
       "missing_by_reason": {
-       "ndvi_pending_fetch": 23
+       "ndvi_gap": 3
       },
-      "pending_fetch_by_month": {
-       "4": 11,
-       "10": 11,
-       "11": 1
-      },
-      "proxy_months": 30,
-      "bare_days": 13,
-      "joint_days": 4,
-      "known_days": 1598,
-      "pooled_exposure": 0.0025,
-      "top_months": [],
-      "max_median_exposure": null,
+      "pending_fetch_by_month": {},
+      "proxy_months": 0,
+      "bare_days": 299,
+      "joint_days": 62,
+      "known_days": 2250,
+      "pooled_exposure": 0.0276,
+      "top_months": [
+       10
+      ],
+      "max_median_exposure": 0.0484,
       "climatology_median": {
        "1": null,
        "2": null,
        "3": null,
-       "4": null,
+       "4": 0.0,
        "5": 0.0,
        "6": 0.0,
        "7": 0.0,
        "8": 0.0,
        "9": 0.0,
-       "10": null,
+       "10": 0.0484,
        "11": null,
        "12": null
       },
       "cover_crop_windows": [],
+      "cover_crop_note": {
+       "reason": "no_risky_months",
+       "basis": {
+        "ru": "Нет месяцев, где медиана доли опасных дней достигает порога окна.",
+        "kk": "Қауіпті күндер үлесінің медианасы терезе шегіне жететін ай жоқ. (ана тілінде тексеру қажет)",
+        "en": "No month reaches the window threshold for the median share of risky days."
+       },
+       "advice": {
+        "ru": "Общая рекомендация, не для конкретного поля: оставьте стоящую стерню и не пашите осенью — стоящие растительные остатки сильно снижают ветровую эрозию (Bilbro & Fryrear, 1994).",
+        "kk": "Жалпы ұсыныс, нақты алқапқа арналмаған: тұрған аңызды қалдырыңыз және күзде жыртпаңыз — тұрған өсімдік қалдықтары жел эрозиясын айтарлықтай азайтады (Bilbro & Fryrear, 1994). (ана тілінде тексеру қажет)",
+        "en": "General guidance, not a field-specific recommendation: leave standing stubble and avoid autumn ploughing — standing residue strongly reduces wind erosion (Bilbro & Fryrear, 1994)."
+       },
+       "advice_scope": "general_guidance",
+       "advice_source": {
+        "id": "bilbro_fryrear_1994",
+        "name": "Bilbro J.D., Fryrear D.W. Wind erosion losses as related to plant silhouette and soil cover. Agronomy Journal, 1994: стоящие и лежащие растительные остатки снижают потери почвы от ветра (отношение потерь SLR по силуэту и покрытию)",
+        "url": "https://data.zhenzhi.com/details/1/985671799",
+        "note": "Проверено только по выдержке, полный текст не прочитан; DOI не найден"
+       },
+       "needs_review": [
+        "kk"
+       ]
+      },
       "effective_thresholds": {
        "ndvi_max": 0.25,
        "ndvi_field_quantile": 0.5,
@@ -840,53 +849,76 @@
        "wind_ms": 5.0,
        "smap_m3m3": 0.1985,
        "smap_basis": "wilting_point_0_5cm",
-       "gwettop": 0.79,
+       "gwettop": 0.72,
        "gwettop_basis": "cdf_match",
-       "gwettop_pairs": 466,
+       "gwettop_pairs": 1880,
        "last_frost_spring": "05-08",
        "first_frost_autumn": "09-25",
-       "frost_years": 11
+       "frost_years": 11,
+       "harvest_end": "10-01"
       }
      },
      {
       "ndvi_max": 0.3,
       "is_rule_value": true,
       "status": "partial",
-      "months_ok": 55,
-      "months_partial": 55,
+      "months_ok": 75,
+      "months_partial": 75,
       "months_snow": 54,
-      "months_missing": 23,
+      "months_missing": 3,
       "months_total": 132,
       "missing_by_reason": {
-       "ndvi_pending_fetch": 23
+       "ndvi_gap": 3
       },
-      "pending_fetch_by_month": {
-       "4": 11,
-       "10": 11,
-       "11": 1
-      },
-      "proxy_months": 30,
-      "bare_days": 146,
-      "joint_days": 57,
-      "known_days": 1598,
-      "pooled_exposure": 0.0357,
-      "top_months": [],
-      "max_median_exposure": null,
+      "pending_fetch_by_month": {},
+      "proxy_months": 0,
+      "bare_days": 625,
+      "joint_days": 152,
+      "known_days": 2250,
+      "pooled_exposure": 0.0676,
+      "top_months": [
+       10,
+       5
+      ],
+      "max_median_exposure": 0.3387,
       "climatology_median": {
        "1": null,
        "2": null,
        "3": null,
-       "4": null,
-       "5": 0.0,
+       "4": 0.0,
+       "5": 0.0323,
        "6": 0.0,
        "7": 0.0,
        "8": 0.0,
        "9": 0.0,
-       "10": null,
+       "10": 0.3387,
        "11": null,
        "12": null
       },
       "cover_crop_windows": [],
+      "cover_crop_note": {
+       "reason": "frost_before_establishment",
+       "basis": {
+        "ru": "После уборки доля опасных дней высокая: октябрь (0,34), но первый заморозок наступает раньше, чем покровная культура успела бы взойти: медиана первого осеннего заморозка (25.09) приходится ещё до окончания уборки (01.10), а нужно не меньше 30 дн. без заморозка.",
+        "kk": "Егін жинаудан кейін қауіпті күндер үлесі жоғары: қазан (0,34), бірақ алғашқы үсік жабынды дақыл көктеп үлгергенге дейін түседі: алғашқы күзгі үсіктің медианасы (25.09) егін жинау аяқталғанға (01.10) дейін түседі, ал кемінде 30 үсіксіз күн қажет. (ана тілінде тексеру қажет)",
+        "en": "After harvest the share of risky days is high in October (0.34), but the first frost comes before a cover crop could establish: the median first autumn frost (25 Sep) comes before the end of harvest (01 Oct), while at least 30 frost-free days are needed."
+       },
+       "advice": {
+        "ru": "Общая рекомендация, не для конкретного поля: оставьте стоящую стерню и не пашите осенью — стоящие растительные остатки сильно снижают ветровую эрозию (Bilbro & Fryrear, 1994).",
+        "kk": "Жалпы ұсыныс, нақты алқапқа арналмаған: тұрған аңызды қалдырыңыз және күзде жыртпаңыз — тұрған өсімдік қалдықтары жел эрозиясын айтарлықтай азайтады (Bilbro & Fryrear, 1994). (ана тілінде тексеру қажет)",
+        "en": "General guidance, not a field-specific recommendation: leave standing stubble and avoid autumn ploughing — standing residue strongly reduces wind erosion (Bilbro & Fryrear, 1994)."
+       },
+       "advice_scope": "general_guidance",
+       "advice_source": {
+        "id": "bilbro_fryrear_1994",
+        "name": "Bilbro J.D., Fryrear D.W. Wind erosion losses as related to plant silhouette and soil cover. Agronomy Journal, 1994: стоящие и лежащие растительные остатки снижают потери почвы от ветра (отношение потерь SLR по силуэту и покрытию)",
+        "url": "https://data.zhenzhi.com/details/1/985671799",
+        "note": "Проверено только по выдержке, полный текст не прочитан; DOI не найден"
+       },
+       "needs_review": [
+        "kk"
+       ]
+      },
       "effective_thresholds": {
        "ndvi_max": 0.3,
        "ndvi_field_quantile": 0.5,
@@ -894,13 +926,79 @@
        "wind_ms": 5.0,
        "smap_m3m3": 0.1985,
        "smap_basis": "wilting_point_0_5cm",
-       "gwettop": 0.79,
+       "gwettop": 0.72,
        "gwettop_basis": "cdf_match",
-       "gwettop_pairs": 466,
+       "gwettop_pairs": 1880,
        "last_frost_spring": "05-08",
        "first_frost_autumn": "09-25",
-       "frost_years": 11
+       "frost_years": 11,
+       "harvest_end": "10-01"
       }
+     }
+    ],
+    "dry_by_month": [
+     {
+      "month": 4,
+      "days": 285,
+      "smap_days": 135,
+      "pairs": 135,
+      "smap_dry_share": 0.222,
+      "gwettop_dry_share_same_days": 0.0,
+      "gwettop_month_threshold": 0.79
+     },
+     {
+      "month": 5,
+      "days": 341,
+      "smap_days": 287,
+      "pairs": 287,
+      "smap_dry_share": 0.78,
+      "gwettop_dry_share_same_days": 0.289,
+      "gwettop_month_threshold": 0.79
+     },
+     {
+      "month": 6,
+      "days": 330,
+      "smap_days": 271,
+      "pairs": 271,
+      "smap_dry_share": 0.856,
+      "gwettop_dry_share_same_days": 0.827,
+      "gwettop_month_threshold": 0.74
+     },
+     {
+      "month": 7,
+      "days": 341,
+      "smap_days": 273,
+      "pairs": 273,
+      "smap_dry_share": 0.835,
+      "gwettop_dry_share_same_days": 0.96,
+      "gwettop_month_threshold": 0.65
+     },
+     {
+      "month": 8,
+      "days": 341,
+      "smap_days": 270,
+      "pairs": 270,
+      "smap_dry_share": 0.807,
+      "gwettop_dry_share_same_days": 0.989,
+      "gwettop_month_threshold": 0.62
+     },
+     {
+      "month": 9,
+      "days": 330,
+      "smap_days": 263,
+      "pairs": 263,
+      "smap_dry_share": 0.802,
+      "gwettop_dry_share_same_days": 1.0,
+      "gwettop_month_threshold": 0.65
+     },
+     {
+      "month": 10,
+      "days": 341,
+      "smap_days": 248,
+      "pairs": 248,
+      "smap_dry_share": 0.839,
+      "gwettop_dry_share_same_days": 0.98,
+      "gwettop_month_threshold": 0.65
      }
     ]
    },
@@ -913,51 +1011,64 @@
       "ndvi_max": 0.25,
       "is_rule_value": false,
       "status": "partial",
-      "months_ok": 50,
-      "months_partial": 50,
-      "months_snow": 48,
-      "months_missing": 34,
+      "months_ok": 80,
+      "months_partial": 53,
+      "months_snow": 49,
+      "months_missing": 3,
       "months_total": 132,
       "missing_by_reason": {
-       "ndvi_gap": 7,
-       "ndvi_not_covered": 1,
-       "ndvi_pending_fetch": 26
+       "ndvi_gap": 2,
+       "ndvi_not_covered": 1
       },
-      "pending_fetch_by_month": {
-       "4": 11,
-       "10": 9,
-       "11": 6
-      },
-      "proxy_months": 25,
-      "bare_days": 199,
-      "joint_days": 67,
-      "known_days": 1448,
-      "pooled_exposure": 0.0463,
+      "pending_fetch_by_month": {},
+      "proxy_months": 0,
+      "bare_days": 621,
+      "joint_days": 180,
+      "known_days": 2397,
+      "pooled_exposure": 0.0751,
       "top_months": [
-       5
+       5,
+       4
       ],
-      "max_median_exposure": 0.1286,
+      "max_median_exposure": 0.1613,
       "climatology_median": {
        "1": null,
        "2": null,
        "3": null,
-       "4": null,
-       "5": 0.1286,
+       "4": 0.0333,
+       "5": 0.1613,
        "6": 0.0,
        "7": 0.0,
        "8": 0.0,
        "9": 0.0,
-       "10": null,
-       "11": null,
+       "10": 0.0,
+       "11": 0.0,
        "12": null
       },
-      "cover_crop_windows": [
-       {
-        "start": "05-08",
-        "end": "05-31",
-        "uncertainty": "medium"
-       }
-      ],
+      "cover_crop_windows": [],
+      "cover_crop_note": {
+       "reason": "risk_before_harvest_only",
+       "basis": {
+        "ru": "Опасные месяцы до окончания уборки (01.10): май (0,16) — в это время поле занято основной культурой (сев–уборка), покровную культуру не сеют. После уборки ни один месяц не достигает порога окна.",
+        "kk": "Егін жинау аяқталғанға дейінгі (01.10) қауіпті айлар: мамыр (0,16) — бұл кезде алқапта негізгі дақыл өседі (себу–жинау), жабынды дақыл егілмейді. Егін жинаудан кейін бірде-бір ай терезе шегіне жетпейді. (ана тілінде тексеру қажет)",
+        "en": "Risky months before the end of harvest (01 Oct): May (0.16) — the field is under the main crop (sowing to harvest), so no cover crop is sown then. After harvest no month reaches the window threshold."
+       },
+       "advice": {
+        "ru": "Общая рекомендация, не для конкретного поля: оставьте стоящую стерню и не пашите осенью — стоящие растительные остатки сильно снижают ветровую эрозию (Bilbro & Fryrear, 1994).",
+        "kk": "Жалпы ұсыныс, нақты алқапқа арналмаған: тұрған аңызды қалдырыңыз және күзде жыртпаңыз — тұрған өсімдік қалдықтары жел эрозиясын айтарлықтай азайтады (Bilbro & Fryrear, 1994). (ана тілінде тексеру қажет)",
+        "en": "General guidance, not a field-specific recommendation: leave standing stubble and avoid autumn ploughing — standing residue strongly reduces wind erosion (Bilbro & Fryrear, 1994)."
+       },
+       "advice_scope": "general_guidance",
+       "advice_source": {
+        "id": "bilbro_fryrear_1994",
+        "name": "Bilbro J.D., Fryrear D.W. Wind erosion losses as related to plant silhouette and soil cover. Agronomy Journal, 1994: стоящие и лежащие растительные остатки снижают потери почвы от ветра (отношение потерь SLR по силуэту и покрытию)",
+        "url": "https://data.zhenzhi.com/details/1/985671799",
+        "note": "Проверено только по выдержке, полный текст не прочитан; DOI не найден"
+       },
+       "needs_review": [
+        "kk"
+       ]
+      },
       "effective_thresholds": {
        "ndvi_max": 0.25,
        "ndvi_field_quantile": 0.5,
@@ -965,65 +1076,78 @@
        "wind_ms": 5.0,
        "smap_m3m3": 0.2229,
        "smap_basis": "wilting_point_0_5cm",
-       "gwettop": 0.7,
+       "gwettop": 0.68,
        "gwettop_basis": "cdf_match",
-       "gwettop_pairs": 609,
+       "gwettop_pairs": 2223,
        "last_frost_spring": "05-07",
        "first_frost_autumn": "09-29",
-       "frost_years": 11
+       "frost_years": 11,
+       "harvest_end": "10-01"
       }
      },
      {
       "ndvi_max": 0.3,
       "is_rule_value": true,
       "status": "partial",
-      "months_ok": 50,
-      "months_partial": 50,
-      "months_snow": 48,
-      "months_missing": 34,
+      "months_ok": 80,
+      "months_partial": 53,
+      "months_snow": 49,
+      "months_missing": 3,
       "months_total": 132,
       "missing_by_reason": {
-       "ndvi_gap": 7,
-       "ndvi_not_covered": 1,
-       "ndvi_pending_fetch": 26
+       "ndvi_gap": 2,
+       "ndvi_not_covered": 1
       },
-      "pending_fetch_by_month": {
-       "4": 11,
-       "10": 9,
-       "11": 6
-      },
-      "proxy_months": 25,
-      "bare_days": 575,
-      "joint_days": 194,
-      "known_days": 1448,
-      "pooled_exposure": 0.134,
+      "pending_fetch_by_month": {},
+      "proxy_months": 0,
+      "bare_days": 1265,
+      "joint_days": 349,
+      "known_days": 2397,
+      "pooled_exposure": 0.1456,
       "top_months": [
+       11,
        5,
-       9,
-       6
+       10
       ],
-      "max_median_exposure": 0.3261,
+      "max_median_exposure": 0.4737,
       "climatology_median": {
        "1": null,
        "2": null,
        "3": null,
-       "4": null,
-       "5": 0.3261,
-       "6": 0.0834,
+       "4": 0.0333,
+       "5": 0.2903,
+       "6": 0.0333,
        "7": 0.0,
        "8": 0.0,
-       "9": 0.2667,
-       "10": null,
-       "11": null,
+       "9": 0.2333,
+       "10": 0.2581,
+       "11": 0.4737,
        "12": null
       },
-      "cover_crop_windows": [
-       {
-        "start": "05-08",
-        "end": "05-31",
-        "uncertainty": "medium"
-       }
-      ],
+      "cover_crop_windows": [],
+      "cover_crop_note": {
+       "reason": "frost_before_establishment",
+       "basis": {
+        "ru": "Опасные месяцы до окончания уборки (01.10): май (0,29), сентябрь (0,23) — в это время поле занято основной культурой (сев–уборка), покровную культуру не сеют. После уборки доля опасных дней высокая: октябрь–ноябрь (0,47), но первый заморозок наступает раньше, чем покровная культура успела бы взойти: медиана первого осеннего заморозка (29.09) приходится ещё до окончания уборки (01.10), а нужно не меньше 30 дн. без заморозка.",
+        "kk": "Егін жинау аяқталғанға дейінгі (01.10) қауіпті айлар: мамыр (0,29), қыркүйек (0,23) — бұл кезде алқапта негізгі дақыл өседі (себу–жинау), жабынды дақыл егілмейді. Егін жинаудан кейін қауіпті күндер үлесі жоғары: қазан–қараша (0,47), бірақ алғашқы үсік жабынды дақыл көктеп үлгергенге дейін түседі: алғашқы күзгі үсіктің медианасы (29.09) егін жинау аяқталғанға (01.10) дейін түседі, ал кемінде 30 үсіксіз күн қажет. (ана тілінде тексеру қажет)",
+        "en": "Risky months before the end of harvest (01 Oct): May (0.29), September (0.23) — the field is under the main crop (sowing to harvest), so no cover crop is sown then. After harvest the share of risky days is high in October–November (0.47), but the first frost comes before a cover crop could establish: the median first autumn frost (29 Sep) comes before the end of harvest (01 Oct), while at least 30 frost-free days are needed."
+       },
+       "advice": {
+        "ru": "Общая рекомендация, не для конкретного поля: оставьте стоящую стерню и не пашите осенью — стоящие растительные остатки сильно снижают ветровую эрозию (Bilbro & Fryrear, 1994).",
+        "kk": "Жалпы ұсыныс, нақты алқапқа арналмаған: тұрған аңызды қалдырыңыз және күзде жыртпаңыз — тұрған өсімдік қалдықтары жел эрозиясын айтарлықтай азайтады (Bilbro & Fryrear, 1994). (ана тілінде тексеру қажет)",
+        "en": "General guidance, not a field-specific recommendation: leave standing stubble and avoid autumn ploughing — standing residue strongly reduces wind erosion (Bilbro & Fryrear, 1994)."
+       },
+       "advice_scope": "general_guidance",
+       "advice_source": {
+        "id": "bilbro_fryrear_1994",
+        "name": "Bilbro J.D., Fryrear D.W. Wind erosion losses as related to plant silhouette and soil cover. Agronomy Journal, 1994: стоящие и лежащие растительные остатки снижают потери почвы от ветра (отношение потерь SLR по силуэту и покрытию)",
+        "url": "https://data.zhenzhi.com/details/1/985671799",
+        "note": "Проверено только по выдержке, полный текст не прочитан; DOI не найден"
+       },
+       "needs_review": [
+        "kk"
+       ]
+      },
       "effective_thresholds": {
        "ndvi_max": 0.3,
        "ndvi_field_quantile": 0.5,
@@ -1031,13 +1155,79 @@
        "wind_ms": 5.0,
        "smap_m3m3": 0.2229,
        "smap_basis": "wilting_point_0_5cm",
-       "gwettop": 0.7,
+       "gwettop": 0.68,
        "gwettop_basis": "cdf_match",
-       "gwettop_pairs": 609,
+       "gwettop_pairs": 2223,
        "last_frost_spring": "05-07",
        "first_frost_autumn": "09-29",
-       "frost_years": 11
+       "frost_years": 11,
+       "harvest_end": "10-01"
       }
+     }
+    ],
+    "dry_by_month": [
+     {
+      "month": 4,
+      "days": 298,
+      "smap_days": 221,
+      "pairs": 221,
+      "smap_dry_share": 0.195,
+      "gwettop_dry_share_same_days": 0.186,
+      "gwettop_month_threshold": 0.68
+     },
+     {
+      "month": 5,
+      "days": 341,
+      "smap_days": 331,
+      "pairs": 331,
+      "smap_dry_share": 0.647,
+      "gwettop_dry_share_same_days": 0.42,
+      "gwettop_month_threshold": 0.71
+     },
+     {
+      "month": 6,
+      "days": 330,
+      "smap_days": 305,
+      "pairs": 305,
+      "smap_dry_share": 0.866,
+      "gwettop_dry_share_same_days": 0.82,
+      "gwettop_month_threshold": 0.69
+     },
+     {
+      "month": 7,
+      "days": 341,
+      "smap_days": 311,
+      "pairs": 311,
+      "smap_dry_share": 0.887,
+      "gwettop_dry_share_same_days": 0.92,
+      "gwettop_month_threshold": 0.66
+     },
+     {
+      "month": 8,
+      "days": 341,
+      "smap_days": 306,
+      "pairs": 306,
+      "smap_dry_share": 0.866,
+      "gwettop_dry_share_same_days": 0.931,
+      "gwettop_month_threshold": 0.64
+     },
+     {
+      "month": 9,
+      "days": 330,
+      "smap_days": 299,
+      "pairs": 299,
+      "smap_dry_share": 0.819,
+      "gwettop_dry_share_same_days": 0.967,
+      "gwettop_month_threshold": 0.64
+     },
+     {
+      "month": 10,
+      "days": 333,
+      "smap_days": 277,
+      "pairs": 277,
+      "smap_dry_share": 0.805,
+      "gwettop_dry_share_same_days": 0.96,
+      "gwettop_month_threshold": 0.64
      }
     ]
    }
@@ -1302,12 +1492,12 @@
   }
  },
  "rule_counts": {
-  "total": 129,
+  "total": 132,
   "verified": 22,
   "by_evidence": {
    "literature": 16,
-   "agronomist_review": 35,
-   "preliminary": 64,
+   "agronomist_review": 37,
+   "preliminary": 65,
    "definition": 14
   }
  }

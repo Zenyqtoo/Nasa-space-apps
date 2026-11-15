@@ -72,10 +72,17 @@ NDVI не отличает стерню от открытой почвы. Поэ
 - `jobs` — `{source, status, job}`, где `job` — состояние фоновой задачи (как в `/api/jobs/{id}`). Только реально
   запущенные загрузки: `modis`, `modis_shoulder`, `smap_season`; недоступность без задачи (нет сети, нет токена) — в `warnings`.
 - `effective_thresholds` *(добавлено в задаче 4, необязательное)* — пороги, фактически применённые к полю: θ_wp слоя
-  0–5 см из SoilGrids, порог GWETTOP (`cdf_match` по SMAP или `fallback`), медианы дат заморозков.
+  0–5 см из SoilGrids, порог GWETTOP (`cdf_match` по SMAP или `fallback`), медианы дат заморозков, типичное окончание уборки в области (`harvest_end`).
 - `headline.top_months` — до `headline.top_n` месяцев с наибольшей медианой exposure (> 0), по убыванию.
 - `cover_crop_windows[].needs_review` *(добавлено в задаче 4)* — языки текста `basis`, требующие вычитки (`["kk"]`).
   `uncertainty`: `low` | `medium` | `high` по числу лет и доле частичных месяцев (`cover_crop` в `erosion.yaml`).
+  Окно только после уборки: `start` не раньше `cover_crop.harvest_end` области поля (`effective_thresholds.harvest_end`,
+  «ММ-ДД») и не позже, чем за `min_frost_free_days` до медианы первого осеннего заморозка.
+- `cover_crop_note` *(добавлено после задачи 4, необязательное)* — почему окон нет: `{reason, basis, needs_review}`;
+  `null`, если окна есть или расчёт не выполнялся. `reason`: `no_harvest_date` (для области нет даты уборки),
+  `no_frost_data`, `no_risky_months`, `risk_before_harvest_only` (опасные месяцы только между севом и уборкой),
+  `frost_before_establishment` (после уборки до заморозка слишком мало дней). `basis` называет исключённые месяцы.
+  `advice` (ru/kk/en) — что делать вместо покровной культуры: оставить стоящую стерню, не пахать осенью; `advice_scope: general_guidance` — общая рекомендация, не для конкретного поля; `advice_source` — `{id, name, url, note}` из `sources.yaml` (`cover_crop.no_window_advice_source`), `note` — как источник проверен.
 - Коды `warnings`: `cell_larger_than_field` (POWER, SMAP), `smap_before_2015_unavailable`, `moisture_fallback_gwettop`,
   `gwettop_threshold_fallback`, `smap_threshold_fallback`, `ndvi_field_mean_proxy`, `ndvi_pending_fetch`,
   `offline_no_cache`, `source_unavailable`, `smap_not_configured`, `power_without_wind`, `bare_soil_no_weather`.
