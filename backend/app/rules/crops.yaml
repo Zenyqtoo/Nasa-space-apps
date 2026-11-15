@@ -17,6 +17,9 @@
 #                   у Ky есть опубликованные значения.
 # nitrogen_balance_kg_ha — баланс азота почвы за год без удобрений (фиксация минус вынос с зерном).
 # humus_balance_t_ha     — изменение запаса гумуса за год.
+# sowing_window, harvest_window — типичные окна сева и уборки {start, end} в формате «ММ-ДД» (планировщик:
+#   дни без зелёного покрова, erosion.yaml -> planner). У пара окон нет: bare_whole_season — без покрова весь
+#   бесснежный сезон.
 
 crops:
   wheat:
@@ -45,6 +48,12 @@ crops:
     humus_balance_t_ha:
       {value: -0.5, unit: "т/га в год", source: kazhydromet_humus, status: assumption, evidence: literature,
        note: "Саттыбаева (2004): чистые потери гумуса под зерновыми 0,5–1 т/га в год в зависимости от уровня урожая — сверено с текстом статьи. При низкой урожайности севера взята нижняя граница диапазона"}
+    sowing_window:
+      {value: {start: "05-15", end: "05-31"}, unit: "ММ-ДД, начало и конец типичного окна сева", source: kazhydromet_sowing_2025, status: assumption, evidence: agronomist_review,
+       note: "Казгидромет: оптимальные сроки сева яровых зерновых весной 2025 г. (прогноз, табл. 2) — Шортанды 14.05–24.05, Атбасар 11.05–21.05, Костанай 13.05–23.05, Карабалык 17.05–27.05; фактический сев яровой пшеницы 2026 г. на постах Акмолинской и Костанайской обл. — 13.05–30.05 (kazhydromet_maturation_2026, табл. 1). Текст PDF прочитан 15.11.2026. Прогноз одного года («несколько раньше климатических сроков»), а не многолетняя рекомендация; рекомендации НПЦ им. Бараева (nasec.kz) в контейнере недоступны. TODO агроному: сверить с рекомендациями НПЦ им. Бараева"}
+    harvest_window:
+      {value: {start: "08-20", end: "10-01"}, unit: "ММ-ДД, начало и конец типичного окна уборки", source: kazhydromet_maturation_2026, status: assumption, evidence: agronomist_review,
+       note: "Казгидромет, прогноз созревания 2026 г. (окончательный): в северных областях восковая спелость яровой пшеницы в основном в первой половине августа, на постах Акмолинской и Костанайской обл. 01.08–24.08 (Шортанды 11.08, Костанай 07.08). Начало окна 20.08 — после восковой спелости (раздельная уборка начинается с неё; срок между фазой и уборкой в источнике не указан). Конец окна совпадает с erosion.cover_crop.harvest_end (01.10, сводки об окончании уборки по областям) — загрузчик проверяет, что уборка зерновых кончается не позже этой даты. Один год наблюдений; TODO агроному: типичные даты уборки по журналам хозяйств"}
 
   lentil:
     name: {ru: "Чечевица", kk: "Жасымық", en: "Lentil"}
@@ -71,6 +80,12 @@ crops:
     humus_balance_t_ha:
       {value: -0.3, unit: "т/га в год", source: expert_guess, status: assumption, evidence: preliminary,
        note: "Принято меньше потерь, чем под зерновыми (богатые азотом остатки). Числовой опоры нет. TODO: проверить у агронома"}
+    sowing_window:
+      {value: {start: "05-15", end: "05-31"}, unit: "ММ-ДД, начало и конец типичного окна сева", source: expert_guess, status: assumption, evidence: preliminary,
+       note: "Принято как для яровой пшеницы (теплолюбивая бобовая, сев в мае). Проверенного источника нет: статья о сроках посева чечевицы на южных чернозёмах Костанайской обл. (ojs.ksu.edu.kz) найдена в поиске, но в контейнере недоступна и не прочитана. TODO агроному"}
+    harvest_window:
+      {value: {start: "08-10", end: "09-10"}, unit: "ММ-ДД, начало и конец типичного окна уборки", source: expert_guess, status: assumption, evidence: preliminary,
+       note: "Оценка: чечевица созревает раньше яровой пшеницы. Источника нет. TODO агроному"}
 
   pea:
     name: {ru: "Горох", kk: "Асбұршақ", en: "Field pea"}
@@ -95,6 +110,12 @@ crops:
        note: "Направление подтверждено: Walley et al. (2007) — горох относится к культурам с высокой фиксацией и чаще даёт положительный баланс. Величина +20 кг/га — оценка"}
     humus_balance_t_ha:
       {value: -0.3, unit: "т/га в год", source: expert_guess, status: assumption, evidence: preliminary, note: "Числовой опоры нет. TODO: проверить у агронома"}
+    sowing_window:
+      {value: {start: "05-05", end: "05-20"}, unit: "ММ-ДД, начало и конец типичного окна сева", source: expert_guess, status: assumption, evidence: preliminary,
+       note: "Оценка: горох холодостоек, его сеют раньше зерновых. Источника для Северного Казахстана нет. TODO агроному"}
+    harvest_window:
+      {value: {start: "08-01", end: "08-31"}, unit: "ММ-ДД, начало и конец типичного окна уборки", source: expert_guess, status: assumption, evidence: preliminary,
+       note: "Оценка: вегетация гороха 90–100 дней (FAO, табл. 4; см. water_need_mm) от сева в начале–середине мая. Даты уборки в источнике нет. TODO агроному"}
 
   chickpea:
     name: {ru: "Нут", kk: "Ноқат", en: "Chickpea"}
@@ -119,6 +140,12 @@ crops:
        note: "Walley et al. 2007 относит к культурам с высокой фиксацией горох, чечевицу и кормовые бобы; для нута баланс принят около нуля. TODO: проверить у агронома"}
     humus_balance_t_ha:
       {value: -0.3, unit: "т/га в год", source: expert_guess, status: assumption, evidence: preliminary, note: "TODO: проверить у агронома"}
+    sowing_window:
+      {value: {start: "05-10", end: "05-25"}, unit: "ММ-ДД, начало и конец типичного окна сева", source: expert_guess, status: assumption, evidence: preliminary,
+       note: "Оценка без источника. TODO агроному"}
+    harvest_window:
+      {value: {start: "08-20", end: "09-20"}, unit: "ММ-ДД, начало и конец типичного окна уборки", source: expert_guess, status: assumption, evidence: preliminary,
+       note: "Оценка без источника. TODO агроному"}
 
   flax:
     name: {ru: "Лён масличный", kk: "Майлы зығыр", en: "Oilseed flax"}
@@ -143,6 +170,12 @@ crops:
     humus_balance_t_ha:
       {value: -0.5, unit: "т/га в год", source: kazhydromet_humus, status: assumption, evidence: agronomist_review,
        note: "Принято как для зерновых (культура сплошного сева) по Саттыбаевой (2004); прямых данных для льна нет"}
+    sowing_window:
+      {value: {start: "05-15", end: "05-31"}, unit: "ММ-ДД, начало и конец типичного окна сева", source: expert_guess, status: assumption, evidence: preliminary,
+       note: "Оценка без источника: сев в те же сроки, что и пшеница. TODO агроному"}
+    harvest_window:
+      {value: {start: "09-01", end: "09-30"}, unit: "ММ-ДД, начало и конец типичного окна уборки", source: expert_guess, status: assumption, evidence: preliminary,
+       note: "Оценка без источника: лён убирают позже пшеницы (заметка к erosion.cover_crop.harvest_end). TODO агроному"}
 
   rapeseed:
     name: {ru: "Рапс яровой", kk: "Жаздық рапс", en: "Spring rapeseed"}
@@ -168,6 +201,12 @@ crops:
     humus_balance_t_ha:
       {value: -0.5, unit: "т/га в год", source: kazhydromet_humus, status: assumption, evidence: agronomist_review,
        note: "Принято как для зерновых (культура сплошного сева) по Саттыбаевой (2004); прямых данных для рапса нет"}
+    sowing_window:
+      {value: {start: "05-15", end: "05-31"}, unit: "ММ-ДД, начало и конец типичного окна сева", source: expert_guess, status: assumption, evidence: preliminary,
+       note: "Оценка без источника. TODO агроному"}
+    harvest_window:
+      {value: {start: "09-01", end: "09-30"}, unit: "ММ-ДД, начало и конец типичного окна уборки", source: expert_guess, status: assumption, evidence: preliminary,
+       note: "Оценка без источника: рапс убирают позже пшеницы (заметка к erosion.cover_crop.harvest_end). TODO агроному"}
 
   sunflower:
     name: {ru: "Подсолнечник", kk: "Күнбағыс", en: "Sunflower"}
@@ -192,6 +231,12 @@ crops:
     humus_balance_t_ha:
       {value: -1.0, unit: "т/га в год", source: kazhydromet_humus, status: assumption, evidence: literature,
        note: "Саттыбаева (2004): под пропашными потери гумуса в 2–3 раза выше, чем под зерновыми (0,5–1 т/га), то есть 1–3 т/га. Взята нижняя граница — сверено с текстом статьи"}
+    sowing_window:
+      {value: {start: "05-10", end: "05-25"}, unit: "ММ-ДД, начало и конец типичного окна сева", source: expert_guess, status: assumption, evidence: preliminary,
+       note: "Оценка без источника: пропашная культура, сев при прогреве почвы. TODO агроному"}
+    harvest_window:
+      {value: {start: "09-15", end: "10-15"}, unit: "ММ-ДД, начало и конец типичного окна уборки", source: expert_guess, status: assumption, evidence: preliminary,
+       note: "Оценка без источника: подсолнечник убирают последним, часто после окончания уборки зерновых. TODO агроному"}
 
   fallow:
     name: {ru: "Пар чистый", kk: "Таза пар", en: "Bare fallow"}
@@ -215,3 +260,6 @@ crops:
     humus_balance_t_ha:
       {value: -1.5, unit: "т/га в год", source: expert_guess, status: assumption, evidence: literature,
        note: "Саттыбаева (2004): потери гумуса на парах на 10 % выше, чем под интенсивной пропашной культурой (1–3 т/га), то есть 1,1–3,3 т/га; −1,5 т/га внутри диапазона. Сверено с текстом статьи"}
+    bare_whole_season:
+      {value: true, unit: "—", source: model_design, status: verified, evidence: definition,
+       note: "Чистый пар по определению держат без растений весь сезон (обработки уничтожают сорняки), поэтому в планировщике пар — без зелёного покрова весь бесснежный сезон. Окон сева и уборки у пара нет. Стерня предшественника на пару не учитывается: класс «без зелёного покрова» тот же, что в «Часах голой почвы» (открытая почва или стерня)"}

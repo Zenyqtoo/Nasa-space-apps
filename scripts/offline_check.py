@@ -63,7 +63,16 @@ async def main() -> None:
     for v in comparison["variants"]:
         diff = (v["totals"]["income_kzt_ha"] / base["totals"]["income_kzt_ha"] - 1) * 100 if base["totals"]["income_kzt_ha"] > 0 else float("nan")
         print(f"  {'★' if v['fits_priority'] else ' '} {v['id']:22s} доход {v['totals']['income_kzt_ha']:>8} тг/га "
-              f"({diff:+.0f} % к монокультуре), балл {v['weighted_score']}")
+              f"({diff:+.0f} % к монокультуре), балл {v['weighted_score']}, без покрова {v['bare_days_per_year']} дн./год, "
+              f"exposure {v['exposure_index']}")
+    season = comparison["bare_soil_season"]
+    print(f"Планировщик: бесснежный сезон {season['start']}–{season['end']} ({season['days']} дн., {season['n_years']} лет), "
+          f"статус {season['status']}")
+    if season["status"] != "ok" or any(v["bare_days_per_year"] is None or v["exposure_index"] is None
+                                       for v in comparison["variants"]):
+        raise SystemExit("планировщик: нет дней без покрова или exposure на демо-данных")
+    if any(v["bare_soil"]["in_score"] for v in comparison["variants"]):
+        raise SystemExit("планировщик: дни без покрова не должны входить в балл (MODEL_AUDIT.md § 7)")
     for kind in layers.KINDS:
         layer = await layers.build_layer(kind, tuple(a["field"]["bbox"]), None)
         print(f"Слой {kind}: {len(layer['features'])} ячеек, источник {layer['meta']['source']}, дата {layer['meta']['date']}")

@@ -37,7 +37,13 @@ EROSION_REQUIRED = {
     "headline": ("top_n",),
     "cover_crop": ("min_median_exposure", "frost_t2m_min_c", "min_frost_free_days", "min_years_medium_uncertainty",
                    "min_years_low_uncertainty", "max_partial_share_low_uncertainty"),
+    "planner": ("canopy_start", "canopy_end"),
 }
+#: Границы периода покрова культуры в планировщике (erosion.planner): какой день окна сева / уборки.
+CANOPY_START = ("sowing_start", "sowing_mid", "sowing_end")
+CANOPY_END = ("harvest_start", "harvest_mid", "harvest_end")
+#: Окна сева и уборки культуры (crops.yaml): {start, end} в формате «ММ-ДД».
+CROP_WINDOWS = ("sowing_window", "harvest_window")
 #: Параметр POWER для ветра должен соответствовать высоте, к которой относится порог.
 WIND_PARAMETERS = {2: ("WS2M", "WS2M_MAX"), 10: ("WS10M", "WS10M_MAX")}
 
@@ -153,6 +159,15 @@ def parse_mmdd(x: Any) -> date | None:
         return date(2001, int(m), int(d)) if len(m) == len(d) == 2 else None
     except ValueError:
         return None
+
+
+def parse_window(p: Any) -> tuple[date, date] | None:
+    """Правило-окно ``{start: "ММ-ДД", end: "ММ-ДД"}`` → (начало, конец) в опорном году или None."""
+    val = p.value if isinstance(p, Param) else None
+    if not isinstance(val, dict) or set(val) != {"start", "end"}:
+        return None
+    a, b = parse_mmdd(val["start"]), parse_mmdd(val["end"])
+    return (a, b) if a is not None and b is not None and a <= b else None
 
 
 def _is_number(x: Any) -> bool:
@@ -274,6 +289,7 @@ def load_rules(directory: Path | None = None) -> Rules:
         for key in required:
             if not isinstance(crop.get(key), Param):
                 raise RulesError(f"crops.{cid}.{key}: must be a rule with value/unit/source/status")
+    _validate_crop_windows(crops, erosion)
     rules = Rules(sources=sources, crops=crops, predecessors=preds, regions=regions, model=model, erosion=erosion)
     for rule in preds:
         for side in ("predecessor", "crop"):
@@ -368,6 +384,14 @@ def _validate_erosion(e: Any) -> None:
         if d.month <= e["cover_crop"]["season_split_month"]:
             raise RulesError(f"erosion.cover_crop.harvest_end.{rid}: harvest end must fall after season_split_month")
 
+    pl = e["planner"]
+    for key, allowed in (("canopy_start", CANOPY_START), ("canopy_end", CANOPY_END)):
+        if pl[key].value not in allowed:
+            raise RulesError(f"erosion.planner.{key}: must be one of {list(allowed)}")
+        sens = pl.get(f"sensitivity_{key}", [])
+        if not (isinstance(sens, list) and sens and set(sens) <= set(allowed) and pl[key].value in sens):
+            raise RulesError(f"erosion.planner.sensitivity_{key}: must list values of {list(allowed)} including the current one")
+
     for cid, ref in (e.get("contract_thresholds") or {}).items():
         node: Any = e
         for part in str(ref).split("."):
@@ -376,6 +400,34 @@ def _validate_erosion(e: Any) -> None:
             raise RulesError(f"erosion.contract_thresholds.{cid}: '{ref}' is not a rule in erosion.yaml")
     if set(e.get("contract_thresholds") or {}) != {"ndvi_bare", "erosive_wind_ms", "dry_topsoil"}:
         raise RulesError("erosion.contract_thresholds: must map ndvi_bare, erosive_wind_ms and dry_topsoil")
+
+
+def _validate_crop_windows(crops: dict, e: dict) -> None:
+    """Окна сева и уборки (планировщик): у каждой культуры, кроме пара; сев раньше уборки; уборка зерновых
+    кончается не позже erosion.cover_crop.harvest_end каждой области — иначе окно покровной культуры в «Часах»
+    начиналось бы, пока зерновые ещё стоят."""
+    for cid, crop in crops.items():
+        if crop["group"] == "fallow":
+            flag = crop.get("bare_whole_season")
+            if not (isinstance(flag, Param) and isinstance(flag.value, bool)):
+                raise RulesError(f"crops.{cid}.bare_whole_season: fallow must have a true/false rule")
+            for key in CROP_WINDOWS:
+                if key in crop:
+                    raise RulesError(f"crops.{cid}.{key}: fallow has no {key}; use bare_whole_season")
+            continue
+        windows = {}
+        for key in CROP_WINDOWS:
+            w = parse_window(crop.get(key))
+            if w is None:
+                raise RulesError(f"crops.{cid}.{key}: must be a rule with value {{start: 'MM-DD', end: 'MM-DD'}}, start ≤ end")
+            windows[key] = w
+        if windows["sowing_window"][1] >= windows["harvest_window"][0]:
+            raise RulesError(f"crops.{cid}: sowing_window must end before harvest_window starts")
+        if crop["group"] == "cereal":
+            for rid, p in e["cover_crop"]["harvest_end"].items():
+                if windows["harvest_window"][1] > parse_mmdd(p.value):
+                    raise RulesError(f"crops.{cid}.harvest_window: cereal harvest must end no later than "
+                                     f"erosion.cover_crop.harvest_end.{rid} ({p.value})")
 
 
 @lru_cache

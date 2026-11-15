@@ -87,3 +87,47 @@ NDVI не отличает стерню от открытой почвы. Поэ
   `gwettop_threshold_fallback`, `smap_threshold_fallback`, `ndvi_field_mean_proxy`, `ndvi_pending_fetch`,
   `offline_no_cache`, `source_unavailable`, `smap_not_configured`, `power_without_wind`, `bare_soil_no_weather`.
 - Казахские тексты требуют вычитки носителем языка.
+
+## Планировщик: дни без покрова и индекс опасности эрозии (задача 5)
+
+`POST /api/rotations/compare`, `POST /api/fields/{id}/analyses` (поле `result`), `GET /api/analyses/{id}`.
+Все поля ниже **необязательные**: в анализах, сохранённых до задачи 5, их нет — интерфейс и отчёты показывают «—».
+**В балл, оценки и рейтинг не входят** (`bare_soil.in_score: false`); как изменился бы рейтинг — `docs/MODEL_AUDIT.md`, § 7.
+Реализация: `backend/app/analytics/scenario_exposure.py`, климатология поля — `services/bare_soil.planner_climate`.
+
+### Определения
+
+- **Бесснежный сезон** поля — от медианы последнего весеннего до медианы первого осеннего снежного дня
+  (правила `snow` в `erosion.yaml`, как у «Часов»), полные годы 2015 … последний полный год.
+- **Период покрова** культуры — с конца окна сева до середины окна уборки (`erosion.planner.canopy_start` /
+  `canopy_end`, окна — `crops.yaml`: `sowing_window`, `harvest_window`). У пара покрова нет (`bare_whole_season`).
+- **Дни без покрова** года = дни бесснежного сезона вне периода покрова. После уборки стерня считается «без зелёного
+  покрова», как в «Часах», поэтому это верхняя оценка, если стерня стоит.
+- **p(месяц)** — доля известных бесснежных дней месяца, когда одновременно эрозионный ветер и сухой верхний слой
+  (пороги `erosive_wind`, `dry_topsoil`); NDVI не используется — покров задаёт календарь культуры.
+- **Опасные дни** года = Σ p(месяц) по дням без покрова; **exposure** года = опасные дни / дни сезона (0–1).
+
+### Поля варианта (`variants[]`)
+
+Две формы с одними и теми же числами — так их читает фронтенд:
+
+| Поле | Тип | Что это |
+|---|---|---|
+| `bare_days_per_year` | число \| `null` | среднее по годам плана число дней без покрова |
+| `exposure_index` | число 0–1 \| `null` | среднее по годам плана exposure |
+| `bare_soil.bare_days_per_year` | число \| `null` | то же, что `bare_days_per_year` |
+| `bare_soil.mean_exposure` | число 0–1 \| `null` | то же, что `exposure_index` |
+| `bare_soil.risky_days_per_year` | число \| `null` | среднее число опасных дней в год |
+| `bare_soil.status` | `ok` \| `partial` \| `missing` | `partial` — у части месяцев сезона нет p (мало лет): дни без покрова есть, exposure `null` |
+| `bare_soil.missing_reason` | строка \| `null` | `no_weather` (нет ветра POWER), `no_snow_season` (нет снежных дней — сезон не определить), `no_wind_dry_climatology`, `wind_dry_months_missing` |
+| `bare_soil.per_year[]` | список | `{index, year, crop, canopy_start, canopy_end, bare_days, risky_days, exposure}`; даты «ММ-ДД», у пара `null` |
+| `bare_soil.season` | объект | `{start, end, days, n_years, period: {start_year, end_year}}` |
+| `bare_soil.rules[]` | список | правила с источником и статусом (`{path, value, unit, status, evidence, source, url}`): окна культур, выбор границ покрова, пороги ветра, сухости и снега, `harvest_end` области |
+| `bare_soil.in_score` | `false` | числа только показываются |
+
+Числа никогда не подменяются нулём: нет данных — `null` и `missing_reason`.
+
+### Поле ответа `bare_soil_season`
+
+`{status, missing_reason, period, start, end, days, n_years, months: [{month, p_wind_dry, n_years, season_days}]}` —
+климатология поля, общая для всех вариантов (только месяцы, попадающие в сезон).
