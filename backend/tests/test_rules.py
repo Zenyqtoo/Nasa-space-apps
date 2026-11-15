@@ -185,6 +185,7 @@ def test_loader_requires_erosion_file_and_groups(tmp_path):
     ('akmola:\n      {value: "10-01"', 'akmola:\n      {value: "10-32"', "harvest_end.akmola"),
     ('akmola:\n      {value: "10-01"', 'akmola:\n      {value: "05-15"', "after season_split_month"),
     ("    north_kazakhstan:\n      {value:", "    nko_renamed:\n      {value:", "no date for regions"),
+    ("no_window_advice_source: bilbro_fryrear_1994", "no_window_advice_source: nobody_2026", "no_window_advice_source"),
 ])
 def test_loader_rejects_bad_erosion_values(tmp_path, old, new, match):
     d = _copy_rules(tmp_path)

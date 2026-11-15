@@ -826,6 +826,18 @@
         "kk": "Қауіпті күндер үлесінің медианасы терезе шегіне жететін ай жоқ. (ана тілінде тексеру қажет)",
         "en": "No month reaches the window threshold for the median share of risky days."
        },
+       "advice": {
+        "ru": "Общая рекомендация, не для конкретного поля: оставьте стоящую стерню и не пашите осенью — стоящие растительные остатки сильно снижают ветровую эрозию (Bilbro & Fryrear, 1994).",
+        "kk": "Жалпы ұсыныс, нақты алқапқа арналмаған: тұрған аңызды қалдырыңыз және күзде жыртпаңыз — тұрған өсімдік қалдықтары жел эрозиясын айтарлықтай азайтады (Bilbro & Fryrear, 1994). (ана тілінде тексеру қажет)",
+        "en": "General guidance, not a field-specific recommendation: leave standing stubble and avoid autumn ploughing — standing residue strongly reduces wind erosion (Bilbro & Fryrear, 1994)."
+       },
+       "advice_scope": "general_guidance",
+       "advice_source": {
+        "id": "bilbro_fryrear_1994",
+        "name": "Bilbro J.D., Fryrear D.W. Wind erosion losses as related to plant silhouette and soil cover. Agronomy Journal, 1994: стоящие и лежащие растительные остатки снижают потери почвы от ветра (отношение потерь SLR по силуэту и покрытию)",
+        "url": "https://data.zhenzhi.com/details/1/985671799",
+        "note": "Проверено только по выдержке, полный текст не прочитан; DOI не найден"
+       },
        "needs_review": [
         "kk"
        ]
@@ -890,6 +902,18 @@
         "ru": "После уборки доля опасных дней высокая: октябрь (0,34), но первый заморозок наступает раньше, чем покровная культура успела бы взойти: медиана первого осеннего заморозка (25.09) приходится ещё до окончания уборки (01.10), а нужно не меньше 30 дн. без заморозка.",
         "kk": "Егін жинаудан кейін қауіпті күндер үлесі жоғары: қазан (0,34), бірақ алғашқы үсік жабынды дақыл көктеп үлгергенге дейін түседі: алғашқы күзгі үсіктің медианасы (25.09) егін жинау аяқталғанға (01.10) дейін түседі, ал кемінде 30 үсіксіз күн қажет. (ана тілінде тексеру қажет)",
         "en": "After harvest the share of risky days is high in October (0.34), but the first frost comes before a cover crop could establish: the median first autumn frost (25 Sep) comes before the end of harvest (01 Oct), while at least 30 frost-free days are needed."
+       },
+       "advice": {
+        "ru": "Общая рекомендация, не для конкретного поля: оставьте стоящую стерню и не пашите осенью — стоящие растительные остатки сильно снижают ветровую эрозию (Bilbro & Fryrear, 1994).",
+        "kk": "Жалпы ұсыныс, нақты алқапқа арналмаған: тұрған аңызды қалдырыңыз және күзде жыртпаңыз — тұрған өсімдік қалдықтары жел эрозиясын айтарлықтай азайтады (Bilbro & Fryrear, 1994). (ана тілінде тексеру қажет)",
+        "en": "General guidance, not a field-specific recommendation: leave standing stubble and avoid autumn ploughing — standing residue strongly reduces wind erosion (Bilbro & Fryrear, 1994)."
+       },
+       "advice_scope": "general_guidance",
+       "advice_source": {
+        "id": "bilbro_fryrear_1994",
+        "name": "Bilbro J.D., Fryrear D.W. Wind erosion losses as related to plant silhouette and soil cover. Agronomy Journal, 1994: стоящие и лежащие растительные остатки снижают потери почвы от ветра (отношение потерь SLR по силуэту и покрытию)",
+        "url": "https://data.zhenzhi.com/details/1/985671799",
+        "note": "Проверено только по выдержке, полный текст не прочитан; DOI не найден"
        },
        "needs_review": [
         "kk"
@@ -1029,6 +1053,18 @@
         "kk": "Егін жинау аяқталғанға дейінгі (01.10) қауіпті айлар: мамыр (0,16) — бұл кезде алқапта негізгі дақыл өседі (себу–жинау), жабынды дақыл егілмейді. Егін жинаудан кейін бірде-бір ай терезе шегіне жетпейді. (ана тілінде тексеру қажет)",
         "en": "Risky months before the end of harvest (01 Oct): May (0.16) — the field is under the main crop (sowing to harvest), so no cover crop is sown then. After harvest no month reaches the window threshold."
        },
+       "advice": {
+        "ru": "Общая рекомендация, не для конкретного поля: оставьте стоящую стерню и не пашите осенью — стоящие растительные остатки сильно снижают ветровую эрозию (Bilbro & Fryrear, 1994).",
+        "kk": "Жалпы ұсыныс, нақты алқапқа арналмаған: тұрған аңызды қалдырыңыз және күзде жыртпаңыз — тұрған өсімдік қалдықтары жел эрозиясын айтарлықтай азайтады (Bilbro & Fryrear, 1994). (ана тілінде тексеру қажет)",
+        "en": "General guidance, not a field-specific recommendation: leave standing stubble and avoid autumn ploughing — standing residue strongly reduces wind erosion (Bilbro & Fryrear, 1994)."
+       },
+       "advice_scope": "general_guidance",
+       "advice_source": {
+        "id": "bilbro_fryrear_1994",
+        "name": "Bilbro J.D., Fryrear D.W. Wind erosion losses as related to plant silhouette and soil cover. Agronomy Journal, 1994: стоящие и лежащие растительные остатки снижают потери почвы от ветра (отношение потерь SLR по силуэту и покрытию)",
+        "url": "https://data.zhenzhi.com/details/1/985671799",
+        "note": "Проверено только по выдержке, полный текст не прочитан; DOI не найден"
+       },
        "needs_review": [
         "kk"
        ]
@@ -1095,6 +1131,18 @@
         "ru": "Опасные месяцы до окончания уборки (01.10): май (0,29), сентябрь (0,23) — в это время поле занято основной культурой (сев–уборка), покровную культуру не сеют. После уборки доля опасных дней высокая: октябрь–ноябрь (0,47), но первый заморозок наступает раньше, чем покровная культура успела бы взойти: медиана первого осеннего заморозка (29.09) приходится ещё до окончания уборки (01.10), а нужно не меньше 30 дн. без заморозка.",
         "kk": "Егін жинау аяқталғанға дейінгі (01.10) қауіпті айлар: мамыр (0,29), қыркүйек (0,23) — бұл кезде алқапта негізгі дақыл өседі (себу–жинау), жабынды дақыл егілмейді. Егін жинаудан кейін қауіпті күндер үлесі жоғары: қазан–қараша (0,47), бірақ алғашқы үсік жабынды дақыл көктеп үлгергенге дейін түседі: алғашқы күзгі үсіктің медианасы (29.09) егін жинау аяқталғанға (01.10) дейін түседі, ал кемінде 30 үсіксіз күн қажет. (ана тілінде тексеру қажет)",
         "en": "Risky months before the end of harvest (01 Oct): May (0.29), September (0.23) — the field is under the main crop (sowing to harvest), so no cover crop is sown then. After harvest the share of risky days is high in October–November (0.47), but the first frost comes before a cover crop could establish: the median first autumn frost (29 Sep) comes before the end of harvest (01 Oct), while at least 30 frost-free days are needed."
+       },
+       "advice": {
+        "ru": "Общая рекомендация, не для конкретного поля: оставьте стоящую стерню и не пашите осенью — стоящие растительные остатки сильно снижают ветровую эрозию (Bilbro & Fryrear, 1994).",
+        "kk": "Жалпы ұсыныс, нақты алқапқа арналмаған: тұрған аңызды қалдырыңыз және күзде жыртпаңыз — тұрған өсімдік қалдықтары жел эрозиясын айтарлықтай азайтады (Bilbro & Fryrear, 1994). (ана тілінде тексеру қажет)",
+        "en": "General guidance, not a field-specific recommendation: leave standing stubble and avoid autumn ploughing — standing residue strongly reduces wind erosion (Bilbro & Fryrear, 1994)."
+       },
+       "advice_scope": "general_guidance",
+       "advice_source": {
+        "id": "bilbro_fryrear_1994",
+        "name": "Bilbro J.D., Fryrear D.W. Wind erosion losses as related to plant silhouette and soil cover. Agronomy Journal, 1994: стоящие и лежащие растительные остатки снижают потери почвы от ветра (отношение потерь SLR по силуэту и покрытию)",
+        "url": "https://data.zhenzhi.com/details/1/985671799",
+        "note": "Проверено только по выдержке, полный текст не прочитан; DOI не найден"
        },
        "needs_review": [
         "kk"

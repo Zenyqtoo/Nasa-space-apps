@@ -253,6 +253,8 @@ def load_rules(directory: Path | None = None) -> Rules:
     model = _convert(read("model.yaml"), "model", sources)
     erosion = _convert(read("erosion.yaml"), "erosion", sources)
     _validate_erosion(erosion)
+    if erosion["cover_crop"].get("no_window_advice_source") not in sources:
+        raise RulesError("erosion.cover_crop.no_window_advice_source: must be a source id from sources.yaml")
     missing_harvest = set(regions) - set(erosion["cover_crop"]["harvest_end"])
     if missing_harvest:
         raise RulesError(f"erosion.cover_crop.harvest_end: no date for regions {sorted(missing_harvest)}")

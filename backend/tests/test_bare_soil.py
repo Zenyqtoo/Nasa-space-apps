@@ -190,7 +190,15 @@ def test_climatology_and_headline_shape(ctx):
         assert w["uncertainty"] in ("low", "medium", "high")
         assert w["start"] >= body["effective_thresholds"]["harvest_end"]
     if not body["cover_crop_windows"]:
-        assert body["cover_crop_note"]["reason"] and body["cover_crop_note"]["basis"]["ru"]
+        note = body["cover_crop_note"]
+        assert note["reason"] and note["basis"]["ru"]
+        assert note["advice_scope"] == "general_guidance" and set(note["advice"]) == {"ru", "kk", "en"}
+        assert "стерн" in note["advice"]["ru"] and "stubble" in note["advice"]["en"]
+        assert note["advice"]["kk"].endswith(bs.KK_REVIEW.strip()) and note["needs_review"] == ["kk"]
+        src = get_rules().sources["bilbro_fryrear_1994"]
+        assert note["advice_source"] == {"id": "bilbro_fryrear_1994", "name": src["name"], "url": src["url"],
+                                         "note": src["note"]}
+        assert "только по выдержке" in note["advice_source"]["note"]  # статус проверки — как записан
     else:
         assert body["cover_crop_note"] is None
 
@@ -443,6 +451,8 @@ def test_climatology_headline_and_cover_crop_windows():
     assert cc["windows"] == [] and cc["note"]["reason"] == "risk_before_harvest_only"
     assert "август" in cc["note"]["basis"]["ru"] and "сев–уборка" in cc["note"]["basis"]["ru"]
     assert cc["note"]["needs_review"] == ["kk"] and cc["note"]["basis"]["kk"].endswith("(ана тілінде тексеру қажет)")
+    assert cc["note"]["advice"] == bs.NO_WINDOW_ADVICE and cc["note"]["advice_scope"] == "general_guidance"
+    assert "General guidance, not a field-specific recommendation" in cc["note"]["advice"]["en"]
 
 
 def _years_with(exposure: dict[int, float]) -> list[dict]:

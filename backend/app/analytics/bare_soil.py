@@ -428,7 +428,19 @@ def _no_window_note(reason: str, *, in_season: list[list[int]], post: list[list[
                            "days are needed.")
     basis = {lang: " ".join(t) for lang, t in texts.items()}
     basis["kk"] += KK_REVIEW
-    return {"reason": reason, "basis": basis, "needs_review": ["kk"]}
+    return {"reason": reason, "basis": basis, "advice": dict(NO_WINDOW_ADVICE), "advice_scope": "general_guidance",
+            "needs_review": ["kk"]}
+
+
+#: Общая рекомендация, если окна покровной культуры нет (источник — cover_crop.no_window_advice_source).
+NO_WINDOW_ADVICE = {
+    "ru": "Общая рекомендация, не для конкретного поля: оставьте стоящую стерню и не пашите осенью — стоящие "
+          "растительные остатки сильно снижают ветровую эрозию (Bilbro & Fryrear, 1994).",
+    "kk": "Жалпы ұсыныс, нақты алқапқа арналмаған: тұрған аңызды қалдырыңыз және күзде жыртпаңыз — тұрған "
+          "өсімдік қалдықтары жел эрозиясын айтарлықтай азайтады (Bilbro & Fryrear, 1994)." + KK_REVIEW,
+    "en": "General guidance, not a field-specific recommendation: leave standing stubble and avoid autumn ploughing — "
+          "standing residue strongly reduces wind erosion (Bilbro & Fryrear, 1994).",
+}
 
 
 def cover_crop_windows(clim: list[dict], years: list[dict], frost: dict, e: dict,

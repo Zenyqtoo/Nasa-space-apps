@@ -82,6 +82,7 @@ NDVI не отличает стерню от открытой почвы. Поэ
   `null`, если окна есть или расчёт не выполнялся. `reason`: `no_harvest_date` (для области нет даты уборки),
   `no_frost_data`, `no_risky_months`, `risk_before_harvest_only` (опасные месяцы только между севом и уборкой),
   `frost_before_establishment` (после уборки до заморозка слишком мало дней). `basis` называет исключённые месяцы.
+  `advice` (ru/kk/en) — что делать вместо покровной культуры: оставить стоящую стерню, не пахать осенью; `advice_scope: general_guidance` — общая рекомендация, не для конкретного поля; `advice_source` — `{id, name, url, note}` из `sources.yaml` (`cover_crop.no_window_advice_source`), `note` — как источник проверен.
 - Коды `warnings`: `cell_larger_than_field` (POWER, SMAP), `smap_before_2015_unavailable`, `moisture_fallback_gwettop`,
   `gwettop_threshold_fallback`, `smap_threshold_fallback`, `ndvi_field_mean_proxy`, `ndvi_pending_fetch`,
   `offline_no_cache`, `source_unavailable`, `smap_not_configured`, `power_without_wind`, `bare_soil_no_weather`.

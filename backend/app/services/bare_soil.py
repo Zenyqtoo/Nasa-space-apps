@@ -187,6 +187,10 @@ async def compute(field: Field, start: int, end: int, rules: Rules, *, start_job
     clim = bs.climatology(years, e)
     frost = bs.frost_dates(df, e, range(start, end + 1))
     cc = bs.cover_crop_windows(clim, years, frost, e, region)
+    if cc["note"] is not None:
+        sid = e["cover_crop"]["no_window_advice_source"]
+        src = rules.sources[sid]
+        cc["note"]["advice_source"] = {"id": sid, "name": src["name"], "url": src["url"], "note": src.get("note", "")}
     harvest = e["cover_crop"]["harvest_end"].get(region) if region else None
     result.update(
         climatology=clim, headline=bs.headline(clim, e),

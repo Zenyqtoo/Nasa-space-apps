@@ -229,6 +229,11 @@ class CoverCropNote(BaseModel):
     #: no_harvest_date | no_frost_data | no_risky_months | risk_before_harvest_only | frost_before_establishment
     reason: str
     basis: LocalizedText
+    #: что делать вместо покровной культуры — общая рекомендация (advice_scope: general_guidance), не для поля
+    advice: LocalizedText | None = None
+    advice_scope: Literal["general_guidance"] | None = None
+    #: источник рекомендации: {id, name, url, note}; note — как источник проверен
+    advice_source: dict[str, str] | None = None
     needs_review: list[str] = Field(default_factory=list)
 
 

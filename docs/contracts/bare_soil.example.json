@@ -36,6 +36,9 @@
   "cover_crop_note": {
     "reason": "frost_before_establishment",
     "basis": { "ru": "Опасные месяцы до окончания уборки (01.10): май (0,29), сентябрь (0,23) — в это время поле занято основной культурой (сев–уборка), покровную культуру не сеют. После уборки доля опасных дней высокая: октябрь–ноябрь (0,47), но первый заморозок наступает раньше, чем покровная культура успела бы взойти: медиана первого осеннего заморозка (28.09) приходится ещё до окончания уборки (01.10), а нужно не меньше 30 дн. без заморозка.", "kk": "Егін жинаудан кейін үсік ерте түседі (ана тілінде тексеру қажет).", "en": "Risky months before the end of harvest (01 Oct): May (0.29), September (0.23) — the field is under the main crop (sowing to harvest), so no cover crop is sown then. After harvest the share of risky days is high in October–November (0.47), but the first frost comes before a cover crop could establish: the median first autumn frost (28 Sep) comes before the end of harvest (01 Oct), while at least 30 frost-free days are needed." },
+    "advice": { "ru": "Общая рекомендация, не для конкретного поля: оставьте стоящую стерню и не пашите осенью — стоящие растительные остатки сильно снижают ветровую эрозию (Bilbro & Fryrear, 1994).", "kk": "Жалпы ұсыныс, нақты алқапқа арналмаған (ана тілінде тексеру қажет).", "en": "General guidance, not a field-specific recommendation: leave standing stubble and avoid autumn ploughing — standing residue strongly reduces wind erosion (Bilbro & Fryrear, 1994)." },
+    "advice_scope": "general_guidance",
+    "advice_source": { "id": "bilbro_fryrear_1994", "name": "Bilbro J.D., Fryrear D.W. Wind erosion losses as related to plant silhouette and soil cover. Agronomy Journal, 1994", "url": "https://data.zhenzhi.com/details/1/985671799", "note": "Проверено только по выдержке, полный текст не прочитан; DOI не найден" },
     "needs_review": ["kk"]
   },
   "sources": [

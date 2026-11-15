@@ -147,6 +147,9 @@ cover_crop:
     north_kazakhstan:
       {value: "10-01", unit: "ММ-ДД (типичное окончание уборки зерновых в области)", source: model_design, status: assumption, evidence: preliminary,
        note: "Принято как для Акмолинской и Костанайской областей; сводки по уборке в СКО не проверялись. TODO агроному: проверить по журналам хозяйств"}
+  # Если окна нет, cover_crop_note.advice — общая рекомендация (не для конкретного поля): оставить стоящую стерню,
+  # не пахать осенью. Источник — id из sources.yaml; его статус проверки показывается как есть (source.note).
+  no_window_advice_source: bilbro_fryrear_1994
   min_years_medium_uncertainty:
     {value: 5, unit: "лет", source: model_design, status: assumption, evidence: preliminary,
      note: "Меньше 5 посчитанных лет в месяцах окна — неопределённость high"}
