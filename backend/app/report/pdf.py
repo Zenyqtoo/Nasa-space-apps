@@ -31,6 +31,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from ..analytics import scenario_exposure
 from ..data_sources import modis as modis_mod
 from ..data_sources.registry import source_catalog
 from ..model.explain import DECIMAL_POINT, NBSP, fmt_int, fmt_num, years_phrase
@@ -312,11 +313,18 @@ def _build_report(data, *, lang: str, selected_variant_id: str | None, farm_name
 
     # ================================================================ 7. оценки
     story += [Spacer(1, 3 * mm), _p(f"7. {t['s_assess']}", st["h1"])]
-    head = [_p(h, st["cellh"]) for h in ("#", t["col_n"], t["col_humus"], t["col_soil_index"], t["col_deficit"], t["col_drought_loss"])]
+    head = [_p(h, st["cellh"]) for h in ("#", t["col_n"], t["col_humus"], t["col_soil_index"], t["col_deficit"], t["col_drought_loss"],
+                                          t["col_bare_days"], t["col_exposure"])]
+    # дни без покрова и индекс эрозии необязательны (в анализах до задачи 5 их нет) — тогда «—»
     arows = [head] + [[str(i + 1), fmt_num(v["totals"]["nitrogen_kg_ha"], 0), fmt_num(v["totals"]["humus_t_ha"], 1),
                        fmt_num(v["totals"]["soil_index_end"], 1), fmt_num(v["totals"]["water_deficit_mean_mm"], 0),
-                       fmt_num(v["totals"]["drought_loss_pct"], 1)] for i, v in enumerate(variants)]
-    story.append(_table(arows, [12 * mm, 30 * mm, 30 * mm, 30 * mm, 36 * mm, 38 * mm], align_right_from=1))
+                       fmt_num(v["totals"]["drought_loss_pct"], 1),
+                       fmt_num(v["bare_days_per_year"], 0) if v.get("bare_days_per_year") is not None else "—",
+                       fmt_num(v["exposure_index"], 2) if v.get("exposure_index") is not None else "—"]
+                      for i, v in enumerate(variants)]
+    story.append(_table(arows, [10 * mm, 22 * mm, 20 * mm, 22 * mm, 26 * mm, 26 * mm, 24 * mm, 26 * mm], align_right_from=1))
+    story.append(_p(escape(scenario_exposure.report_note(c, t, crop, float(rules.erosion["erosive_wind"]["speed_ms"].value),
+                                                         fmt_num, lang)), st["small"]))
     story.append(Spacer(1, 3 * mm))
     head = [_p(h, st["cellh"]) for h in ("#", t["col_revenue"], t["col_cost"], t["col_gross"], t["col_price_minus"], t["col_price_plus"])]
     erows = [head] + [[str(i + 1)] + [fmt_int(v["economics"][k]) for k in ("revenue_kzt_ha", "cost_kzt_ha", "gross_margin_kzt_ha",

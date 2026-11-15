@@ -215,3 +215,44 @@ def attach(rules: Rules, result: dict, climate: dict, region: str | None) -> Non
         v["bare_soil"] = {**sc, "season": {k: season[k] for k in ("start", "end", "days", "n_years", "period")},
                           "rules": rule_refs(rules, [y["crop"] for y in v["years"]], region), "in_score": False}
     result["bare_soil_season"] = season
+
+
+# ---------------------------------------------------------------- отчёты (PDF и XLSX — одни и те же тексты)
+def _short_source(name: str) -> str:
+    """Короткое название источника для отчёта: до первой запятой, точки, скобки или двоеточия."""
+    cut = min((i for i in (name.find(ch) for ch in ",.(:") if i > 0), default=len(name))
+    return name[:cut].strip()
+
+
+def window_sources(variants: list[dict]) -> list[dict]:
+    """Источники и статусы окон сева и уборки культур сравниваемых сценариев:
+    ``[{source, status, evidence, crops}]`` — одна строка на источник (коротко) и статус."""
+    groups: dict[tuple, list[str]] = {}
+    for v in variants:
+        for r in (v.get("bare_soil") or {}).get("rules", []):
+            parts = r["path"].split(".")
+            if parts[0] != "crops":
+                continue
+            crops = groups.setdefault((_short_source(r["source"]), r["status"], r["evidence"]), [])
+            if parts[1] not in crops:
+                crops.append(parts[1])
+    return [{"source": k[0], "status": k[1], "evidence": k[2], "crops": c} for k, c in groups.items()]
+
+
+def _mmdd(x: str, lang: str) -> str:
+    d = date(REF_YEAR, int(x[:2]), int(x[3:]))
+    return f"{d.day} {d.strftime('%b')}" if lang == "en" else d.strftime("%d.%m")
+
+
+def report_note(comparison: dict, t: dict, crop_name: Any, wind_ms: float, fmt: Any, lang: str) -> str:
+    """Пояснение к столбцам «дни без покрова» и «индекс опасности эрозии»: определение, источник и статус.
+    ``t`` — строки отчёта (locales/report.yaml), ``crop_name(id)`` — название культуры, ``fmt(x, digits)`` — число."""
+    season = comparison.get("bare_soil_season")
+    if not season:  # анализ сохранён до задачи 5 — отчёт показывает «—»
+        return t["bare_not_saved"]
+    if season["start"] is None:
+        return t["bare_missing"].format(reason=season.get("missing_reason") or "")
+    windows = "; ".join(f"{', '.join(crop_name(c) for c in w['crops'])} — {w['source']} ({w['status']}, {w['evidence']})"
+                        for w in window_sources(comparison["variants"]))
+    return t["bare_note"].format(start=_mmdd(season["start"], lang), end=_mmdd(season["end"], lang), days=season["days"],
+                                 n=season["n_years"], wind=fmt(wind_ms, 1), windows=windows)

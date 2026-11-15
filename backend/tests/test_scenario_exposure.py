@@ -245,3 +245,95 @@ def test_new_and_old_saved_analyses(env):
         for ext in ("pdf", "xlsx"):
             r = c.get(f"/api/fields/{fid}/report.{ext}?lang=ru&analysis_id={a['id']}")
             assert r.status_code == 200 and len(r.content) > 1000
+
+
+# ---------------------------------------------------------------- PDF и XLSX
+@pytest.fixture(scope="module")
+def report_data():
+    if demo_field_record() is None:
+        pytest.skip("нет data/demo")
+    import asyncio
+
+    from app.schemas import CompareRequest
+    from app.services.report_data import gather
+
+    s = get_settings()
+    old = s.offline
+    s.offline = True
+    demo = demo_field_record()
+    req = CompareRequest(geometry=demo["geometry"], region=demo["region"], history=demo["history"])
+    d = asyncio.run(gather(req))
+    s.offline = old
+    return d
+
+
+def _without_bare_soil(data):
+    import copy
+    import dataclasses
+
+    comp = copy.deepcopy(data.comparison)
+    comp.pop("bare_soil_season")
+    for v in comp["variants"]:
+        for k in NEW_FIELDS:
+            v.pop(k)
+    return dataclasses.replace(data, comparison=comp)
+
+
+def _pdf_text(pdf: bytes) -> str:
+    import io
+
+    from pypdf import PdfReader
+
+    return " ".join(p.extract_text() for p in PdfReader(io.BytesIO(pdf)).pages).replace("\n", " ")
+
+
+def _comparison_sheet(xlsx: bytes):
+    import io
+
+    import openpyxl
+
+    return openpyxl.load_workbook(io.BytesIO(xlsx)).worksheets[2]
+
+
+@pytest.mark.parametrize("lang", ["ru", "kk", "en"])
+def test_pdf_has_bare_soil_columns_with_source_and_status(report_data, lang):
+    from app.report import pdf as pdf_mod
+
+    t = pdf_mod.strings(lang)
+    text = _pdf_text(pdf_mod.build_report(report_data, lang=lang))
+    season = report_data.comparison["bare_soil_season"]
+    assert f"{season['days']} " in text and "assumption" in text and "agronomist_review" in text
+    assert "Казгидромет" in text
+    for word in t["col_exposure"].split()[:2]:
+        assert word in text
+    for v in report_data.comparison["variants"]:
+        assert str(round(v["bare_days_per_year"])) in text
+
+
+def test_xlsx_has_bare_soil_columns_and_note(report_data):
+    from app.report import pdf as pdf_mod
+    from app.report.xlsx import build_workbook
+
+    t = pdf_mod.strings("ru")
+    ws = _comparison_sheet(build_workbook(report_data, lang="ru"))
+    head = [c.value for c in ws[1]]
+    i, j = head.index(t["col_bare_days"]) + 1, head.index(t["col_exposure"]) + 1
+    variants = report_data.comparison["variants"]
+    for row, v in enumerate(variants, start=2):
+        assert ws.cell(row=row, column=i).value == v["bare_days_per_year"]
+        assert ws.cell(row=row, column=j).value == v["exposure_index"]
+    note = ws.cell(row=len(variants) + 4, column=2).value
+    assert "Казгидромет" in note and "assumption" in note
+
+
+def test_reports_for_old_comparison_show_dash(report_data):
+    """Сравнение без новых полей (анализ до задачи 5): PDF — «—», XLSX — пустые ячейки, без ошибок."""
+    from app.report import pdf as pdf_mod
+    from app.report.xlsx import build_workbook
+
+    old = _without_bare_soil(report_data)
+    t = pdf_mod.strings("ru")
+    assert t["bare_not_saved"].split(":")[0] in _pdf_text(pdf_mod.build_report(old, lang="ru"))
+    ws = _comparison_sheet(build_workbook(old, lang="ru"))
+    i = [c.value for c in ws[1]].index(t["col_bare_days"]) + 1
+    assert all(ws.cell(row=r, column=i).value is None for r in range(2, len(old.comparison["variants"]) + 2))
