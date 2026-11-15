@@ -14,6 +14,9 @@
   5. «Часы голой почвы» на обоих демо-полях: результат при каждом пороге NDVI из erosion.yaml
      (bare_soil.sensitivity_values), какие месяцы ждут загрузки MODIS межсезонья и сколько месяцев
      посчитано по среднему NDVI поля (proxy).
+  6. Планировщик: дни без покрова и индекс опасности эрозии по сценариям на обоих демо-полях; как изменился
+     бы рейтинг, если бы индекс входил в балл пятой оценкой «эрозия» (половина веса почвы, вариант «а»,
+     docs/MODEL_AUDIT.md § 7); чувствительность к границам периода покрова (erosion.planner).
 
 Пишет docs/audit/audit_results.json и docs/audit/AUDIT_TABLES.md. Результат детерминирован:
 повторный запуск на тех же данных даёт те же файлы (кроме даты запуска).
@@ -434,6 +437,85 @@ async def bare_soil_sensitivity(rules) -> list[dict]:
     return out
 
 
+# ---------------------------------------------------------------- планировщик: дни без покрова (задача 5)
+def erosion_option_a(res: dict, exposure: dict[str, float], weights: dict[str, float]) -> dict:
+    """Вариант «а» (только аудит): пятая оценка «эрозия» 1–5 по exposure_index (меньше — лучше), вес — половина
+    веса почвы; остальные веса как в приоритете. Шкала — по тем же вариантам, что и остальные оценки."""
+    neutral = float(res_scoring_neutral())
+    vals = [exposure[v["id"]] for v in res["variants"]]
+    lo, hi = min(vals), max(vals)
+    w = {**weights, "soil": weights["soil"] / 2, "erosion": weights["soil"] / 2}
+    out = {}
+    for v in res["variants"]:
+        e = rotation._normalize(exposure[v["id"]], lo, hi, -1, neutral)
+        score = sum(w[k] * v["scores"][k]["score"] for k in rotation.SCORE_KEYS) + w["erosion"] * e
+        out[v["id"]] = {"erosion_score": e, "weighted": round(score, 2), "weighted_now": v["weighted_score"]}
+    return out
+
+
+def res_scoring_neutral() -> float:
+    return float(get_rules().model["scoring"].get("neutral_score", 3.0))
+
+
+def _ranking(scores: dict[str, float]) -> list[str]:
+    return [k for k, _ in sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))]
+
+
+async def planner_bare_soil(rules) -> dict:
+    """Дни без покрова и exposure по сценариям обоих демо-полей; рейтинг сейчас и при варианте «а»;
+    чувствительность к границам покрова. Климатология — полные годы BARE_SOIL_PERIOD."""
+    from app.analytics import scenario_exposure as se
+    from app.data_sources.base import demo_field_records
+    from app.geometry import parse_field
+    from app.model.rotation import FieldConditions
+    from app.services.bare_soil import planner_climate
+
+    pl = rules.erosion["planner"]
+    variants = [{"id": x["id"], "name": x["name"], "crops": list(x["crops"])} for x in rules.model["default_variants"]]
+    fields = []
+    for rec in demo_field_records():
+        history = [h["crop"] for h in sorted(rec["history"], key=lambda h: h["year"])]
+        comp, _ = await run_compare(CompareRequest(geometry=rec["geometry"], region=rec["region"], history=rec["history"],
+                                                   horizon_years=4, start_year=START_YEAR))
+        cond = FieldConditions(**comp["conditions"])
+        climate = await planner_climate(parse_field(rec["geometry"]), rules,
+                                        today=date(BARE_SOIL_PERIOD[1] + 1, 6, 1))
+        by_priority = {}
+        for pid, pr in rules.model["priorities"].items():
+            res = rotation.compare(rules, cond, variants, history, 4, pid, start_year=START_YEAR)
+            sc = {v["id"]: se.scenario(rules, v["years"], climate) for v in res["variants"]}
+            a = erosion_option_a(res, {k: x["mean_exposure"] for k, x in sc.items()}, pr["weights"].value)
+            by_priority[pid] = {"now": _ranking({k: x["weighted_now"] for k, x in a.items()}),
+                                "option_a": _ranking({k: x["weighted"] for k, x in a.items()}), "scores": a}
+        res = rotation.compare(rules, cond, variants, history, 4, "balanced", start_year=START_YEAR)
+        base = {v["id"]: se.scenario(rules, v["years"], climate) for v in res["variants"]}
+        sens = []
+        for c0 in pl["sensitivity_canopy_start"]:
+            for c1 in pl["sensitivity_canopy_end"]:
+                cases = {}
+                for pid, pr in rules.model["priorities"].items():
+                    r2 = rotation.compare(rules, cond, variants, history, 4, pid, start_year=START_YEAR)
+                    sc = {v["id"]: se.scenario(rules, v["years"], climate, start=c0, end=c1) for v in r2["variants"]}
+                    a = erosion_option_a(r2, {k: x["mean_exposure"] for k, x in sc.items()}, pr["weights"].value)
+                    cases[pid] = _ranking({k: x["weighted"] for k, x in a.items()})[0]
+                sc = {v["id"]: se.scenario(rules, v["years"], climate, start=c0, end=c1) for v in res["variants"]}
+                sens.append({"canopy_start": c0, "canopy_end": c1,
+                             "is_rule_value": c0 == pl["canopy_start"].value and c1 == pl["canopy_end"].value,
+                             "bare_days": {k: x["bare_days_per_year"] for k, x in sc.items()},
+                             "exposure": {k: x["mean_exposure"] for k, x in sc.items()},
+                             "best_option_a": cases})
+        fields.append({"id": rec["id"], "name": rec["name"]["ru"], "season": se.season_out(climate),
+                       "variants": {k: {"crops": next(v["crops"] for v in res["variants"] if v["id"] == k),
+                                        "bare_days_per_year": x["bare_days_per_year"],
+                                        "exposure_index": x["mean_exposure"],
+                                        "risky_days_per_year": x["risky_days_per_year"],
+                                        "per_year": [(y["crop"], y["bare_days"], y["risky_days"]) for y in x["per_year"]]}
+                                    for k, x in base.items()},
+                       "by_priority": by_priority, "sensitivity": sens})
+    return {"period": list(BARE_SOIL_PERIOD), "canopy_start": pl["canopy_start"].value,
+            "canopy_end": pl["canopy_end"].value, "fields": fields}
+
+
 # ---------------------------------------------------------------- main
 async def main() -> None:
     rules = get_rules()
@@ -512,6 +594,7 @@ async def main() -> None:
     sens = sensitivity(rules, fc, history)
     hz = horizon_effect(rules, fc, history)
     bs = await bare_soil_sensitivity(rules)
+    pbs = await planner_bare_soil(rules)
 
     result = {
         "run_date": date.today().isoformat(),
@@ -527,6 +610,7 @@ async def main() -> None:
         "sensitivity": sens,
         "horizon_effect": hz,
         "bare_soil_ndvi_sensitivity": {"period": list(BARE_SOIL_PERIOD), "fields": bs},
+        "planner_bare_soil": pbs,
         "variants": {x["id"]: {"crops": x["crops"], "totals": x["totals"],
                                "years": [{k: y[k] for k in ("year", "crop", "yield_t_ha", "yield_dry_t_ha", "income_kzt_ha",
                                                              "moisture_coef", "predecessor_effect_pct", "monoculture_penalty_pct")}
@@ -552,6 +636,11 @@ async def main() -> None:
                   f"{c['months_ok']} из {c['months_total']} мес. (снег {c['months_snow']}, ждут MODIS межсезонья "
                   f"{c['missing_by_reason'].get('ndvi_pending_fetch', 0)}, по среднему NDVI {c['proxy_months']}), "
                   f"макс. медиана exposure {c['max_median_exposure']}")
+    for f in pbs["fields"]:
+        changed = [p for p, x in f["by_priority"].items() if x["now"][0] != x["option_a"][0]]
+        print(f"Планировщик, {f['id']}: без покрова " + ", ".join(
+            f"{k} {x['bare_days_per_year']} дн. / {x['exposure_index']}" for k, x in f["variants"].items())
+            + f"; вариант «а» меняет лучший сценарий для приоритетов: {changed or 'нет'}")
     print(f"Записано: {OUT / 'audit_results.json'}, {OUT / 'AUDIT_TABLES.md'}")
     if failed:
         raise SystemExit(f"{len(failed)} проверок не прошли")
@@ -562,6 +651,7 @@ def fmt(x: float) -> str:
 
 
 def write_markdown(r: dict, rules) -> None:
+    planner = r["planner_bare_soil"]  # ниже имя r переиспользуется в циклах
     names = {v["id"]: v["name"]["ru"] for v in rules.model["default_variants"]}
     L = ["# Таблицы аудита модели (сгенерировано `scripts/audit_model.py`)", "",
          f"Демо-поле {r['field']['area_ha']} га, план с {r['start_year']} г., данные `data/demo/`. Дата запуска: {r['run_date']}.", "",
@@ -701,7 +791,57 @@ def write_markdown(r: dict, rules) -> None:
             L.append(f"| {f['name']} | {MONTH_RU[r['month'] - 1]} | {r['days']} | {r['smap_days']} | "
                      f"{r['smap_dry_share'] * 100:.0f} % | {r['gwettop_dry_share_same_days'] * 100:.0f} % | "
                      f"{num(r['gwettop_month_threshold'], 2)} |")
+    L += planner_markdown(planner, rules, num)
     (OUT / "AUDIT_TABLES.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+
+
+PRIORITY_RU = {"max_income": "доход", "save_moisture": "влага", "restore_soil": "почва", "minimize_risk": "риск",
+               "balanced": "баланс"}
+
+
+def planner_markdown(pb: dict, rules, num) -> list[str]:
+    """Раздел «Планировщик: дни без покрова» (docs/MODEL_AUDIT.md § 7)."""
+    names = {v["id"]: v["name"]["ru"] for v in rules.model["default_variants"]}
+    p0, p1 = pb["period"]
+    L = ["", "## Планировщик: дни без покрова и индекс опасности эрозии по сценариям", "",
+         f"Оба демо-поля, климатология {p0}–{p1}, `OFFLINE=1`. Покров: `{pb['canopy_start']}` → `{pb['canopy_end']}` "
+         "(`erosion.planner`). Дни без покрова — дни бесснежного сезона вне периода покрова; exposure — доля дней "
+         "сезона «без покрова, ветер и сухо». В балл модели **не входит**; вариант «а» ниже — только расчёт аудита: "
+         "пятая оценка «эрозия» 1–5 по exposure (меньше — лучше), вес — половина веса почвы. План 4 года с "
+         f"{START_YEAR} г., история — пшеница много лет подряд.", ""]
+    for f in pb["fields"]:
+        s = f["season"]
+        L += [f"### {f['name']}", "",
+              f"Бесснежный сезон {s['start']}–{s['end']} ({s['days']} дн., {s['n_years']} лет). Доля дней «ветер и "
+              "сухо» по месяцам сезона: " + ", ".join(f"{MONTH_RU[m['month'] - 1]} {num(m['p_wind_dry'])}"
+                                                    for m in s["months"]) + ".", "",
+              "| Сценарий | Культуры | Дней без покрова в год | Опасных дней в год | exposure_index | По годам (культура: дни / опасные) |",
+              "|---|---|---|---|---|---|"]
+        for vid, x in f["variants"].items():
+            L.append(f"| {names.get(vid, vid)} | {' → '.join(x['crops'])} | {num(x['bare_days_per_year'], 1)} | "
+                     f"{num(x['risky_days_per_year'], 1)} | {num(x['exposure_index'], 3)} | "
+                     + "; ".join(f"{c}: {b} / {num(rk, 1)}" for c, b, rk in x["per_year"]) + " |")
+        L += ["", "Рейтинг по взвешенному баллу сейчас и при варианте «а» (балл сейчас → с эрозией):", "",
+              "| Приоритет | Сейчас | Вариант «а» | Лучший меняется? | Баллы |", "|---|---|---|---|---|"]
+        for pid, x in f["by_priority"].items():
+            scores = "; ".join(f"{names.get(k, k)}: {num(v['weighted_now'])} → {num(v['weighted'])} "
+                               f"(эрозия {num(v['erosion_score'], 1)})" for k, v in x["scores"].items())
+            L.append(f"| {PRIORITY_RU.get(pid, pid)} | {' > '.join(names.get(k, k) for k in x['now'])} | "
+                     f"{' > '.join(names.get(k, k) for k in x['option_a'])} | "
+                     f"{'**да**' if x['now'][0] != x['option_a'][0] else 'нет'} | {scores} |")
+        L += ["", "Чувствительность к границам периода покрова (дни без покрова в год / exposure; лучший сценарий "
+                  "при варианте «а» по приоритетам):", "",
+              "| Начало покрова | Конец покрова | В правилах | " + " | ".join(names.get(k, k) for k in f["variants"])
+              + " | Лучший при «а» (доход / влага / почва / риск / баланс) |",
+              "|---|---|---|" + "---|" * len(f["variants"]) + "---|"]
+        for c in f["sensitivity"]:
+            L.append(f"| {c['canopy_start']} | {c['canopy_end']} | {'да' if c['is_rule_value'] else ''} | "
+                     + " | ".join(f"{num(c['bare_days'][k], 1)} / {num(c['exposure'][k], 3)}" for k in f["variants"])
+                     + " | " + " / ".join(names.get(c["best_option_a"][p], c["best_option_a"][p])
+                                          for p in ("max_income", "save_moisture", "restore_soil", "minimize_risk", "balanced"))
+                     + " |")
+        L.append("")
+    return L
 
 
 EVIDENCE_TITLES = {

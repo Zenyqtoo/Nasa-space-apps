@@ -20,6 +20,7 @@ import math
 from datetime import date
 
 from ..analytics import bare_soil as bs
+from ..analytics import scenario_exposure as se
 from ..analytics import soil_water
 from ..data_sources.base import DataWarning, SourceResult
 from ..data_sources.registry import SOURCES
@@ -126,6 +127,41 @@ def _job_entry(sid: str, state: dict) -> dict:
     return {"source": sid, "status": state["status"], "job": state.get("job")}
 
 
+def conditions(power: SourceResult, soil: SourceResult | None, slow: dict[str, SourceResult | None], e: dict,
+               start: int, end: int) -> dict:
+    """Суточная таблица условий (снег, NDVI, ветер, сухость) с 1 января ``start`` по 31 декабря ``end``.
+    Общая для «Часов голой почвы» и планировщика (дни без покрова в сценариях)."""
+    df = bs.power_frame(power.data)
+    snow = bs.power_snow(df, e)
+    sm = bs.smap_days(*(slow[s].data if slow.get(s) else None for s in ("smap", "smap_season")))
+    wp = _wilting_point_0_5(soil)
+    factor = float(e["dry_topsoil"]["smap_wilting_point_factor"].value)
+    smap_thr = factor * wp if wp is not None else float(e["dry_topsoil"]["smap_fallback_m3m3"].value)
+    gw = bs.gwettop_threshold(df, sm, smap_thr, snow, e)
+    modis_data = [slow[s].data for s in ("modis", "modis_shoulder") if slow.get(s) is not None]
+    comps = bs.composites(modis_data, e)
+    daily = bs.daily_conditions(df, comps, sm, smap_thr, gw["value"], e, date(start, 1, 1), date(end, 12, 31))
+    return {"df": df, "daily": daily, "wp": wp, "smap_thr": smap_thr, "gw": gw}
+
+
+async def planner_climate(field: Field, rules: Rules, *, today: date | None = None) -> dict:
+    """Климатология поля для дней без покрова в сценариях планировщика (analytics.scenario_exposure).
+
+    Период — как у «Часов» по умолчанию: DEFAULT_START_YEAR … последний полный год. Только кэш и демо-данные:
+    фоновые загрузки не запускаются (их запускает вкладка «Часы»). Без ветра POWER — ``status: missing``."""
+    e = rules.erosion
+    today = today or date.today()
+    years = range(DEFAULT_START_YEAR, today.year)
+    power = await SOURCES["power"].fetch(field, POWER_START, today)
+    wind_col = e["erosive_wind"]["power_parameter"]
+    if not power.ok or power.origin == "fallback" or wind_col not in power.data.get("daily", {}):
+        return se.missing_climate("no_weather", years)
+    soil = await SOURCES["soilgrids"].fetch(field, POWER_START, today)
+    slow = {sid: _slow_source(SOURCES[sid], field, t0, today, False)[0] for sid, t0, _ in SLOW_SOURCES}
+    cond = conditions(power, soil, slow, e, years.start, years.stop - 1)
+    return se.field_climate(cond["daily"], e, years)
+
+
 async def compute(field: Field, start: int, end: int, rules: Rules, *, start_jobs: bool = True,
                   today: date | None = None, region: str | None = None) -> dict:
     """Расчёт по данным: годы, климатология, окна, источники, предупреждения, задачи."""
@@ -153,16 +189,8 @@ async def compute(field: Field, start: int, end: int, rules: Rules, *, start_job
         warnings.append(DataWarning(code, "power", {"origin": power.origin}))
         return {**result, "warnings": warnings}
 
-    df = bs.power_frame(power.data)
-    snow = bs.power_snow(df, e)
-    sm = bs.smap_days(*(slow[s][0].data if slow[s][0] else None for s in ("smap", "smap_season")))
-    wp = _wilting_point_0_5(soil)
-    factor = float(e["dry_topsoil"]["smap_wilting_point_factor"].value)
-    smap_thr = factor * wp if wp is not None else float(e["dry_topsoil"]["smap_fallback_m3m3"].value)
-    gw = bs.gwettop_threshold(df, sm, smap_thr, snow, e)
-    modis_data = [slow[s][0].data for s in ("modis", "modis_shoulder") if slow[s][0] is not None]
-    comps = bs.composites(modis_data, e)
-    daily = bs.daily_conditions(df, comps, sm, smap_thr, gw["value"], e, date(start, 1, 1), date(end, 12, 31))
+    cond = conditions(power, soil, {sid: res for sid, (res, _) in slow.items()}, e, start, end)
+    df, daily, wp, smap_thr, gw = cond["df"], cond["daily"], cond["wp"], cond["smap_thr"], cond["gw"]
     weather_days = df.index[df[wind_col].notna()]
     last_weather = weather_days[-1].date() if len(weather_days) else None
     ndvi_ready = {cov: slow[sid][1]["status"] == "ready" for cov, sid in NDVI_COVERAGE.items()}

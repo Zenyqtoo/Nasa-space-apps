@@ -15,8 +15,10 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
+from ..analytics import scenario_exposure
 from ..data_sources.registry import source_catalog
 from ..model.rules import get_rules
+from .pdf import strings as report_strings
 
 GREEN = "1F5134"
 HEADER_FILL = PatternFill("solid", fgColor="EEF3EF")
@@ -159,6 +161,7 @@ def _finish(ws: Worksheet, header_row: int, last_row: int, last_col: int) -> Non
 def build_workbook(data, *, lang: str = "ru") -> bytes:
     rules = get_rules()
     t = L[lang]
+    rs = report_strings(lang)  # строки locales/report.yaml — те же, что в PDF
     c, a, seasons = data.comparison, data.analysis, data.seasons
     info = data.field_info
     field = a["field"]
@@ -229,8 +232,9 @@ def build_workbook(data, *, lang: str = "ru") -> bytes:
     # ---------------------------------------------------------------- 3. сравнение сценариев
     ws = wb.create_sheet(t["s3"][:31])
     head = [t["scenario"], t["crops"], t["soil"], t["water"], t["income"], t["risk"], t["score"], t["n"], t["humus"], t["soil_idx"],
-            t["deficit"], t["revenue"], t["cost"], t["margin"], t["m_minus"], t["m_plus"], t["loss"], t["confidence"], t["conf_share"], t["best"]]
-    _header(ws, 1, head, [26, 40, 9, 9, 9, 9, 13, 11, 10, 11, 12, 13, 13, 15, 15, 15, 12, 12, 12, 12])
+            t["deficit"], t["revenue"], t["cost"], t["margin"], t["m_minus"], t["m_plus"], t["loss"], t["confidence"], t["conf_share"], t["best"],
+            rs["col_bare_days"], rs["col_exposure"]]
+    _header(ws, 1, head, [26, 40, 9, 9, 9, 9, 13, 11, 10, 11, 12, 13, 13, 15, 15, 15, 12, 12, 12, 12, 13, 14])
     # строка весов: взвешенный балл считается формулой SUMPRODUCT
     wrow = len(c["variants"]) + 3
     ws.cell(row=wrow, column=2, value=t["weight_row"]).font = HEAD_FONT
@@ -254,8 +258,17 @@ def build_workbook(data, *, lang: str = "ru") -> bytes:
         ws.cell(row=i, column=18, value=v["confidence"]["level"])
         ws.cell(row=i, column=19, value=v["confidence"]["share"]).number_format = "0%"
         ws.cell(row=i, column=20, value=t["yes"] if v["fits_priority"] else t["no"])
+        # необязательные (в анализах до задачи 5 их нет): пустая ячейка, ничего не подставляется
+        if v.get("bare_days_per_year") is not None:
+            ws.cell(row=i, column=21, value=v["bare_days_per_year"]).number_format = "0"
+        if v.get("exposure_index") is not None:
+            ws.cell(row=i, column=22, value=v["exposure_index"]).number_format = "0.00"
     last = len(c["variants"]) + 1
     _finish(ws, 1, last, len(head))
+    # источник и статус дней без покрова и индекса эрозии — строкой под весами
+    note = scenario_exposure.report_note(c, rs, crop, float(rules.erosion["erosive_wind"]["speed_ms"].value),
+                                         lambda x, d: f"{x:.{d}f}" if lang == "en" else f"{x:.{d}f}".replace(".", ","), lang)
+    ws.cell(row=wrow + 1, column=2, value=note).font = NOTE_FONT
     chart = BarChart()
     chart.title = t["chart_margin"]
     chart.y_axis.title = "KZT/ha"
@@ -266,11 +279,18 @@ def build_workbook(data, *, lang: str = "ru") -> bytes:
     # расчёт по годам с формулами
     r0 = wrow + 20
     ws.cell(row=r0, column=1, value=t["detail"]).font = TITLE_FONT
-    dh = [t["scenario"], t["year"], t["crop"], t["yield"], t["price"], t["cost_y"], t["margin_y"], t["yield_dry"], t["pred"], t["moist"]]
+    dh = [t["scenario"], t["year"], t["crop"], t["yield"], t["price"], t["cost_y"], t["margin_y"], t["yield_dry"], t["pred"], t["moist"],
+          rs["col_bare_days_y"], rs["col_risky_days_y"]]
     _header(ws, r0 + 1, dh)
     rr = r0 + 2
     for v in c["variants"]:
+        bare_y = {y["index"]: y for y in (v.get("bare_soil") or {}).get("per_year", [])}
         for y in v["years"]:
+            b = bare_y.get(y["index"], {})
+            if b.get("bare_days") is not None:
+                ws.cell(row=rr, column=11, value=b["bare_days"])
+            if b.get("risky_days") is not None:
+                ws.cell(row=rr, column=12, value=b["risky_days"]).number_format = "0.0"
             ws.cell(row=rr, column=1, value=v["id"])
             ws.cell(row=rr, column=2, value=y["year"])
             ws.cell(row=rr, column=3, value=crop(y["crop"]))

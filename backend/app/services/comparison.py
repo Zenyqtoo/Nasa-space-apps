@@ -1,10 +1,12 @@
 """Сравнение севооборотов для поля: анализ данных -> модель -> объяснения."""
 from __future__ import annotations
 
+from ..analytics import scenario_exposure
 from ..model import explain, rotation
 from ..model.rules import Rules, get_rules
 from ..schemas import CompareRequest
 from .analysis import Analysis, analyze
+from .bare_soil import planner_climate
 
 
 def default_variants(rules: Rules) -> list[dict]:
@@ -44,6 +46,8 @@ async def run_compare(req: CompareRequest, *, start_jobs: bool = False) -> tuple
         weights=req.weights,
     )
     explain.attach_explanations(rules, result)
+    # дни без покрова и индекс опасности эрозии: только показываются, в балл и рейтинг не входят (MODEL_AUDIT.md § 7)
+    scenario_exposure.attach(rules, result, await planner_climate(analysis.field, rules), req.region)
     result["priority_name"] = rules.model["priorities"][req.priority]["name"]
     result["history"] = [h.model_dump() for h in sorted(req.history, key=lambda h: h.year)]
     result["field"] = analysis.response["field"]

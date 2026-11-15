@@ -242,29 +242,29 @@
    0.595
   ],
   "precip": [
-   142.52,
-   171.58,
-   126.44,
+   142.52000000000004,
+   171.58000000000007,
+   126.44000000000001,
    170.63,
-   134.15,
-   193.67,
-   137.03,
+   134.14999999999998,
+   193.66999999999993,
+   137.03000000000003,
    138.72,
-   118.16,
+   118.16000000000003,
    210.71,
    90.1,
    235.84,
-   144.54,
-   227.37,
-   185.74,
+   144.54000000000005,
+   227.37000000000003,
+   185.73999999999998,
    122.44,
    247.09,
    138.11,
-   143.93,
-   122.0,
+   143.92999999999998,
+   122.00000000000001,
    120.72,
-   89.9,
-   344.84000000000003,
+   89.89999999999998,
+   344.84,
    219.16,
    148.37
   ],
@@ -1233,6 +1233,1216 @@
    }
   ]
  },
+ "planner_bare_soil": {
+  "period": [
+   2015,
+   2025
+  ],
+  "canopy_start": "sowing_end",
+  "canopy_end": "harvest_mid",
+  "fields": [
+   {
+    "id": "demo-akmola-shortandy",
+    "name": "Демо-поле, Шортандинский район",
+    "season": {
+     "status": "ok",
+     "missing_reason": null,
+     "period": {
+      "start_year": 2015,
+      "end_year": 2025
+     },
+     "start": "04-07",
+     "end": "11-02",
+     "days": 210,
+     "n_years": 11,
+     "months": [
+      {
+       "month": 4,
+       "p_wind_dry": 0.0398,
+       "n_years": 11,
+       "season_days": 24
+      },
+      {
+       "month": 5,
+       "p_wind_dry": 0.3079,
+       "n_years": 11,
+       "season_days": 31
+      },
+      {
+       "month": 6,
+       "p_wind_dry": 0.3061,
+       "n_years": 11,
+       "season_days": 30
+      },
+      {
+       "month": 7,
+       "p_wind_dry": 0.2522,
+       "n_years": 11,
+       "season_days": 31
+      },
+      {
+       "month": 8,
+       "p_wind_dry": 0.2141,
+       "n_years": 11,
+       "season_days": 31
+      },
+      {
+       "month": 9,
+       "p_wind_dry": 0.3212,
+       "n_years": 11,
+       "season_days": 30
+      },
+      {
+       "month": 10,
+       "p_wind_dry": 0.3647,
+       "n_years": 11,
+       "season_days": 31
+      },
+      {
+       "month": 11,
+       "p_wind_dry": 0.5,
+       "n_years": 6,
+       "season_days": 2
+      }
+     ]
+    },
+    "variants": {
+     "wheat_mono": {
+      "crops": [
+       "wheat",
+       "wheat",
+       "wheat",
+       "wheat"
+      ],
+      "bare_days_per_year": 107.0,
+      "exposure_index": 0.1377,
+      "risky_days_per_year": 28.9,
+      "per_year": [
+       [
+        "wheat",
+        107,
+        28.9
+       ],
+       [
+        "wheat",
+        107,
+        28.9
+       ],
+       [
+        "wheat",
+        107,
+        28.9
+       ],
+       [
+        "wheat",
+        107,
+        28.9
+       ]
+      ]
+     },
+     "lentil_flax": {
+      "crops": [
+       "wheat",
+       "lentil",
+       "wheat",
+       "flax"
+      ],
+      "bare_days_per_year": 109.8,
+      "exposure_index": 0.1411,
+      "risky_days_per_year": 29.6,
+      "per_year": [
+       [
+        "wheat",
+        107,
+        28.9
+       ],
+       [
+        "lentil",
+        123,
+        33.4
+       ],
+       [
+        "wheat",
+        107,
+        28.9
+       ],
+       [
+        "flax",
+        102,
+        27.3
+       ]
+      ]
+     },
+     "pea_rapeseed_fallow": {
+      "crops": [
+       "wheat",
+       "pea",
+       "rapeseed",
+       "fallow"
+      ],
+      "bare_days_per_year": 135.0,
+      "exposure_index": 0.1718,
+      "risky_days_per_year": 36.1,
+      "per_year": [
+       [
+        "wheat",
+        107,
+        28.9
+       ],
+       [
+        "pea",
+        121,
+        32.0
+       ],
+       [
+        "rapeseed",
+        102,
+        27.3
+       ],
+       [
+        "fallow",
+        210,
+        56.1
+       ]
+      ]
+     },
+     "chickpea_sunflower": {
+      "crops": [
+       "wheat",
+       "chickpea",
+       "sunflower",
+       "wheat"
+      ],
+      "bare_days_per_year": 100.5,
+      "exposure_index": 0.128,
+      "risky_days_per_year": 26.9,
+      "per_year": [
+       [
+        "wheat",
+        107,
+        28.9
+       ],
+       [
+        "chickpea",
+        107,
+        29.0
+       ],
+       [
+        "sunflower",
+        81,
+        20.7
+       ],
+       [
+        "wheat",
+        107,
+        28.9
+       ]
+      ]
+     }
+    },
+    "by_priority": {
+     "max_income": {
+      "now": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "option_a": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "scores": {
+       "wheat_mono": {
+        "erosion_score": 4.1,
+        "weighted": 1.34,
+        "weighted_now": 1.1
+       },
+       "lentil_flax": {
+        "erosion_score": 3.8,
+        "weighted": 4.46,
+        "weighted_now": 4.55
+       },
+       "pea_rapeseed_fallow": {
+        "erosion_score": 1.0,
+        "weighted": 2.78,
+        "weighted_now": 3.03
+       },
+       "chickpea_sunflower": {
+        "erosion_score": 5.0,
+        "weighted": 4.32,
+        "weighted_now": 4.23
+       }
+      }
+     },
+     "save_moisture": {
+      "now": [
+       "pea_rapeseed_fallow",
+       "lentil_flax",
+       "chickpea_sunflower",
+       "wheat_mono"
+      ],
+      "option_a": [
+       "lentil_flax",
+       "pea_rapeseed_fallow",
+       "chickpea_sunflower",
+       "wheat_mono"
+      ],
+      "scores": {
+       "wheat_mono": {
+        "erosion_score": 4.1,
+        "weighted": 1.55,
+        "weighted_now": 1.31
+       },
+       "lentil_flax": {
+        "erosion_score": 3.8,
+        "weighted": 3.96,
+        "weighted_now": 4.05
+       },
+       "pea_rapeseed_fallow": {
+        "erosion_score": 1.0,
+        "weighted": 3.92,
+        "weighted_now": 4.18
+       },
+       "chickpea_sunflower": {
+        "erosion_score": 5.0,
+        "weighted": 3.12,
+        "weighted_now": 3.04
+       }
+      }
+     },
+     "restore_soil": {
+      "now": [
+       "lentil_flax",
+       "pea_rapeseed_fallow",
+       "chickpea_sunflower",
+       "wheat_mono"
+      ],
+      "option_a": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "scores": {
+       "wheat_mono": {
+        "erosion_score": 4.1,
+        "weighted": 1.88,
+        "weighted_now": 1.1
+       },
+       "lentil_flax": {
+        "erosion_score": 3.8,
+        "weighted": 4.31,
+        "weighted_now": 4.61
+       },
+       "pea_rapeseed_fallow": {
+        "erosion_score": 1.0,
+        "weighted": 3.03,
+        "weighted_now": 3.89
+       },
+       "chickpea_sunflower": {
+        "erosion_score": 5.0,
+        "weighted": 4.12,
+        "weighted_now": 3.85
+       }
+      }
+     },
+     "minimize_risk": {
+      "now": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "option_a": [
+       "chickpea_sunflower",
+       "lentil_flax",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "scores": {
+       "wheat_mono": {
+        "erosion_score": 4.1,
+        "weighted": 1.37,
+        "weighted_now": 1.14
+       },
+       "lentil_flax": {
+        "erosion_score": 3.8,
+        "weighted": 4.12,
+        "weighted_now": 4.21
+       },
+       "pea_rapeseed_fallow": {
+        "erosion_score": 1.0,
+        "weighted": 3.57,
+        "weighted_now": 3.83
+       },
+       "chickpea_sunflower": {
+        "erosion_score": 5.0,
+        "weighted": 4.12,
+        "weighted_now": 4.04
+       }
+      }
+     },
+     "balanced": {
+      "now": [
+       "lentil_flax",
+       "pea_rapeseed_fallow",
+       "chickpea_sunflower",
+       "wheat_mono"
+      ],
+      "option_a": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "scores": {
+       "wheat_mono": {
+        "erosion_score": 4.1,
+        "weighted": 1.56,
+        "weighted_now": 1.18
+       },
+       "lentil_flax": {
+        "erosion_score": 3.8,
+        "weighted": 4.2,
+        "weighted_now": 4.35
+       },
+       "pea_rapeseed_fallow": {
+        "erosion_score": 1.0,
+        "weighted": 3.35,
+        "weighted_now": 3.77
+       },
+       "chickpea_sunflower": {
+        "erosion_score": 5.0,
+        "weighted": 3.86,
+        "weighted_now": 3.73
+       }
+      }
+     }
+    },
+    "sensitivity": [
+     {
+      "canopy_start": "sowing_start",
+      "canopy_end": "harvest_start",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 112.0,
+       "lentil_flax": 111.5,
+       "pea_rapeseed_fallow": 135.8,
+       "chickpea_sunflower": 103.0
+      },
+      "exposure": {
+       "wheat_mono": 0.1408,
+       "lentil_flax": 0.1401,
+       "pea_rapeseed_fallow": 0.1703,
+       "chickpea_sunflower": 0.1286
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "chickpea_sunflower",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_start",
+      "canopy_end": "harvest_mid",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 91.0,
+       "lentil_flax": 93.8,
+       "pea_rapeseed_fallow": 123.2,
+       "chickpea_sunflower": 85.0
+      },
+      "exposure": {
+       "wheat_mono": 0.1143,
+       "lentil_flax": 0.1177,
+       "pea_rapeseed_fallow": 0.1545,
+       "chickpea_sunflower": 0.1052
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "lentil_flax",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_start",
+      "canopy_end": "harvest_end",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 70.0,
+       "lentil_flax": 75.5,
+       "pea_rapeseed_fallow": 110.5,
+       "chickpea_sunflower": 66.8
+      },
+      "exposure": {
+       "wheat_mono": 0.0819,
+       "lentil_flax": 0.0905,
+       "pea_rapeseed_fallow": 0.1369,
+       "chickpea_sunflower": 0.0764
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "lentil_flax",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_mid",
+      "canopy_end": "harvest_start",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 120.0,
+       "lentil_flax": 119.5,
+       "pea_rapeseed_fallow": 141.5,
+       "chickpea_sunflower": 110.5
+      },
+      "exposure": {
+       "wheat_mono": 0.1525,
+       "lentil_flax": 0.1519,
+       "pea_rapeseed_fallow": 0.1788,
+       "chickpea_sunflower": 0.1396
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "chickpea_sunflower",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_mid",
+      "canopy_end": "harvest_mid",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 99.0,
+       "lentil_flax": 101.8,
+       "pea_rapeseed_fallow": 129.0,
+       "chickpea_sunflower": 92.5
+      },
+      "exposure": {
+       "wheat_mono": 0.126,
+       "lentil_flax": 0.1294,
+       "pea_rapeseed_fallow": 0.163,
+       "chickpea_sunflower": 0.1163
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "chickpea_sunflower",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_mid",
+      "canopy_end": "harvest_end",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 78.0,
+       "lentil_flax": 83.5,
+       "pea_rapeseed_fallow": 116.2,
+       "chickpea_sunflower": 74.2
+      },
+      "exposure": {
+       "wheat_mono": 0.0937,
+       "lentil_flax": 0.1022,
+       "pea_rapeseed_fallow": 0.1453,
+       "chickpea_sunflower": 0.0875
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "lentil_flax",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_end",
+      "canopy_end": "harvest_start",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 128.0,
+       "lentil_flax": 127.5,
+       "pea_rapeseed_fallow": 147.5,
+       "chickpea_sunflower": 118.5
+      },
+      "exposure": {
+       "wheat_mono": 0.1642,
+       "lentil_flax": 0.1636,
+       "pea_rapeseed_fallow": 0.1875,
+       "chickpea_sunflower": 0.1513
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "chickpea_sunflower",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_end",
+      "canopy_end": "harvest_mid",
+      "is_rule_value": true,
+      "bare_days": {
+       "wheat_mono": 107.0,
+       "lentil_flax": 109.8,
+       "pea_rapeseed_fallow": 135.0,
+       "chickpea_sunflower": 100.5
+      },
+      "exposure": {
+       "wheat_mono": 0.1377,
+       "lentil_flax": 0.1411,
+       "pea_rapeseed_fallow": 0.1718,
+       "chickpea_sunflower": 0.128
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "chickpea_sunflower",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_end",
+      "canopy_end": "harvest_end",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 86.0,
+       "lentil_flax": 91.5,
+       "pea_rapeseed_fallow": 122.2,
+       "chickpea_sunflower": 82.2
+      },
+      "exposure": {
+       "wheat_mono": 0.1054,
+       "lentil_flax": 0.1139,
+       "pea_rapeseed_fallow": 0.1541,
+       "chickpea_sunflower": 0.0992
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "chickpea_sunflower",
+       "balanced": "lentil_flax"
+      }
+     }
+    ]
+   },
+   {
+    "id": "demo-kostanay",
+    "name": "Демо-поле, Костанайский район",
+    "season": {
+     "status": "ok",
+     "missing_reason": null,
+     "period": {
+      "start_year": 2015,
+      "end_year": 2025
+     },
+     "start": "04-07",
+     "end": "11-08",
+     "days": 216,
+     "n_years": 11,
+     "months": [
+      {
+       "month": 4,
+       "p_wind_dry": 0.0897,
+       "n_years": 10,
+       "season_days": 24
+      },
+      {
+       "month": 5,
+       "p_wind_dry": 0.2845,
+       "n_years": 11,
+       "season_days": 31
+      },
+      {
+       "month": 6,
+       "p_wind_dry": 0.2636,
+       "n_years": 11,
+       "season_days": 30
+      },
+      {
+       "month": 7,
+       "p_wind_dry": 0.2287,
+       "n_years": 11,
+       "season_days": 31
+      },
+      {
+       "month": 8,
+       "p_wind_dry": 0.1818,
+       "n_years": 11,
+       "season_days": 31
+      },
+      {
+       "month": 9,
+       "p_wind_dry": 0.3018,
+       "n_years": 11,
+       "season_days": 30
+      },
+      {
+       "month": 10,
+       "p_wind_dry": 0.3135,
+       "n_years": 11,
+       "season_days": 31
+      },
+      {
+       "month": 11,
+       "p_wind_dry": 0.5375,
+       "n_years": 10,
+       "season_days": 8
+      }
+     ]
+    },
+    "variants": {
+     "wheat_mono": {
+      "crops": [
+       "wheat",
+       "wheat",
+       "wheat",
+       "wheat"
+      ],
+      "bare_days_per_year": 113.0,
+      "exposure_index": 0.1423,
+      "risky_days_per_year": 30.7,
+      "per_year": [
+       [
+        "wheat",
+        113,
+        30.7
+       ],
+       [
+        "wheat",
+        113,
+        30.7
+       ],
+       [
+        "wheat",
+        113,
+        30.7
+       ],
+       [
+        "wheat",
+        113,
+        30.7
+       ]
+      ]
+     },
+     "lentil_flax": {
+      "crops": [
+       "wheat",
+       "lentil",
+       "wheat",
+       "flax"
+      ],
+      "bare_days_per_year": 115.8,
+      "exposure_index": 0.1453,
+      "risky_days_per_year": 31.4,
+      "per_year": [
+       [
+        "wheat",
+        113,
+        30.7
+       ],
+       [
+        "lentil",
+        129,
+        34.9
+       ],
+       [
+        "wheat",
+        113,
+        30.7
+       ],
+       [
+        "flax",
+        108,
+        29.2
+       ]
+      ]
+     },
+     "pea_rapeseed_fallow": {
+      "crops": [
+       "wheat",
+       "pea",
+       "rapeseed",
+       "fallow"
+      ],
+      "bare_days_per_year": 141.0,
+      "exposure_index": 0.1713,
+      "risky_days_per_year": 37.0,
+      "per_year": [
+       [
+        "wheat",
+        113,
+        30.7
+       ],
+       [
+        "pea",
+        127,
+        33.4
+       ],
+       [
+        "rapeseed",
+        108,
+        29.2
+       ],
+       [
+        "fallow",
+        216,
+        54.7
+       ]
+      ]
+     },
+     "chickpea_sunflower": {
+      "crops": [
+       "wheat",
+       "chickpea",
+       "sunflower",
+       "wheat"
+      ],
+      "bare_days_per_year": 106.5,
+      "exposure_index": 0.1335,
+      "risky_days_per_year": 28.8,
+      "per_year": [
+       [
+        "wheat",
+        113,
+        30.7
+       ],
+       [
+        "chickpea",
+        113,
+        30.8
+       ],
+       [
+        "sunflower",
+        87,
+        23.0
+       ],
+       [
+        "wheat",
+        113,
+        30.7
+       ]
+      ]
+     }
+    },
+    "by_priority": {
+     "max_income": {
+      "now": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "option_a": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "scores": {
+       "wheat_mono": {
+        "erosion_score": 4.1,
+        "weighted": 1.35,
+        "weighted_now": 1.12
+       },
+       "lentil_flax": {
+        "erosion_score": 3.8,
+        "weighted": 4.48,
+        "weighted_now": 4.57
+       },
+       "pea_rapeseed_fallow": {
+        "erosion_score": 1.0,
+        "weighted": 2.56,
+        "weighted_now": 2.81
+       },
+       "chickpea_sunflower": {
+        "erosion_score": 5.0,
+        "weighted": 4.27,
+        "weighted_now": 4.19
+       }
+      }
+     },
+     "save_moisture": {
+      "now": [
+       "lentil_flax",
+       "pea_rapeseed_fallow",
+       "chickpea_sunflower",
+       "wheat_mono"
+      ],
+      "option_a": [
+       "lentil_flax",
+       "pea_rapeseed_fallow",
+       "chickpea_sunflower",
+       "wheat_mono"
+      ],
+      "scores": {
+       "wheat_mono": {
+        "erosion_score": 4.1,
+        "weighted": 1.59,
+        "weighted_now": 1.36
+       },
+       "lentil_flax": {
+        "erosion_score": 3.8,
+        "weighted": 4.0,
+        "weighted_now": 4.09
+       },
+       "pea_rapeseed_fallow": {
+        "erosion_score": 1.0,
+        "weighted": 3.84,
+        "weighted_now": 4.09
+       },
+       "chickpea_sunflower": {
+        "erosion_score": 5.0,
+        "weighted": 3.1,
+        "weighted_now": 3.02
+       }
+      }
+     },
+     "restore_soil": {
+      "now": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "option_a": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "scores": {
+       "wheat_mono": {
+        "erosion_score": 4.1,
+        "weighted": 1.9,
+        "weighted_now": 1.12
+       },
+       "lentil_flax": {
+        "erosion_score": 3.8,
+        "weighted": 4.33,
+        "weighted_now": 4.62
+       },
+       "pea_rapeseed_fallow": {
+        "erosion_score": 1.0,
+        "weighted": 2.94,
+        "weighted_now": 3.79
+       },
+       "chickpea_sunflower": {
+        "erosion_score": 5.0,
+        "weighted": 4.11,
+        "weighted_now": 3.83
+       }
+      }
+     },
+     "minimize_risk": {
+      "now": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "option_a": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "scores": {
+       "wheat_mono": {
+        "erosion_score": 4.1,
+        "weighted": 1.39,
+        "weighted_now": 1.16
+       },
+       "lentil_flax": {
+        "erosion_score": 3.8,
+        "weighted": 4.13,
+        "weighted_now": 4.22
+       },
+       "pea_rapeseed_fallow": {
+        "erosion_score": 1.0,
+        "weighted": 3.45,
+        "weighted_now": 3.7
+       },
+       "chickpea_sunflower": {
+        "erosion_score": 5.0,
+        "weighted": 4.1,
+        "weighted_now": 4.02
+       }
+      }
+     },
+     "balanced": {
+      "now": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "option_a": [
+       "lentil_flax",
+       "chickpea_sunflower",
+       "pea_rapeseed_fallow",
+       "wheat_mono"
+      ],
+      "scores": {
+       "wheat_mono": {
+        "erosion_score": 4.1,
+        "weighted": 1.59,
+        "weighted_now": 1.2
+       },
+       "lentil_flax": {
+        "erosion_score": 3.8,
+        "weighted": 4.22,
+        "weighted_now": 4.38
+       },
+       "pea_rapeseed_fallow": {
+        "erosion_score": 1.0,
+        "weighted": 3.23,
+        "weighted_now": 3.65
+       },
+       "chickpea_sunflower": {
+        "erosion_score": 5.0,
+        "weighted": 3.84,
+        "weighted_now": 3.7
+       }
+      }
+     }
+    },
+    "sensitivity": [
+     {
+      "canopy_start": "sowing_start",
+      "canopy_end": "harvest_start",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 118.0,
+       "lentil_flax": 117.5,
+       "pea_rapeseed_fallow": 141.8,
+       "chickpea_sunflower": 109.0
+      },
+      "exposure": {
+       "wheat_mono": 0.1445,
+       "lentil_flax": 0.1439,
+       "pea_rapeseed_fallow": 0.1697,
+       "chickpea_sunflower": 0.1336
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "lentil_flax",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_start",
+      "canopy_end": "harvest_mid",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 97.0,
+       "lentil_flax": 99.8,
+       "pea_rapeseed_fallow": 129.2,
+       "chickpea_sunflower": 91.0
+      },
+      "exposure": {
+       "wheat_mono": 0.1213,
+       "lentil_flax": 0.1243,
+       "pea_rapeseed_fallow": 0.1558,
+       "chickpea_sunflower": 0.1131
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "lentil_flax",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_start",
+      "canopy_end": "harvest_end",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 76.0,
+       "lentil_flax": 81.5,
+       "pea_rapeseed_fallow": 116.5,
+       "chickpea_sunflower": 72.8
+      },
+      "exposure": {
+       "wheat_mono": 0.0919,
+       "lentil_flax": 0.0996,
+       "pea_rapeseed_fallow": 0.1401,
+       "chickpea_sunflower": 0.0874
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "lentil_flax",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_mid",
+      "canopy_end": "harvest_start",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 126.0,
+       "lentil_flax": 125.5,
+       "pea_rapeseed_fallow": 147.5,
+       "chickpea_sunflower": 116.5
+      },
+      "exposure": {
+       "wheat_mono": 0.155,
+       "lentil_flax": 0.1545,
+       "pea_rapeseed_fallow": 0.1772,
+       "chickpea_sunflower": 0.1435
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "lentil_flax",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_mid",
+      "canopy_end": "harvest_mid",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 105.0,
+       "lentil_flax": 107.8,
+       "pea_rapeseed_fallow": 135.0,
+       "chickpea_sunflower": 98.5
+      },
+      "exposure": {
+       "wheat_mono": 0.1318,
+       "lentil_flax": 0.1348,
+       "pea_rapeseed_fallow": 0.1634,
+       "chickpea_sunflower": 0.123
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "lentil_flax",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_mid",
+      "canopy_end": "harvest_end",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 84.0,
+       "lentil_flax": 89.5,
+       "pea_rapeseed_fallow": 122.2,
+       "chickpea_sunflower": 80.2
+      },
+      "exposure": {
+       "wheat_mono": 0.1024,
+       "lentil_flax": 0.1101,
+       "pea_rapeseed_fallow": 0.1477,
+       "chickpea_sunflower": 0.0972
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "lentil_flax",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_end",
+      "canopy_end": "harvest_start",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 134.0,
+       "lentil_flax": 133.5,
+       "pea_rapeseed_fallow": 153.5,
+       "chickpea_sunflower": 124.5
+      },
+      "exposure": {
+       "wheat_mono": 0.1656,
+       "lentil_flax": 0.165,
+       "pea_rapeseed_fallow": 0.1852,
+       "chickpea_sunflower": 0.1541
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "lentil_flax",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_end",
+      "canopy_end": "harvest_mid",
+      "is_rule_value": true,
+      "bare_days": {
+       "wheat_mono": 113.0,
+       "lentil_flax": 115.8,
+       "pea_rapeseed_fallow": 141.0,
+       "chickpea_sunflower": 106.5
+      },
+      "exposure": {
+       "wheat_mono": 0.1423,
+       "lentil_flax": 0.1453,
+       "pea_rapeseed_fallow": 0.1713,
+       "chickpea_sunflower": 0.1335
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "lentil_flax",
+       "balanced": "lentil_flax"
+      }
+     },
+     {
+      "canopy_start": "sowing_end",
+      "canopy_end": "harvest_end",
+      "is_rule_value": false,
+      "bare_days": {
+       "wheat_mono": 92.0,
+       "lentil_flax": 97.5,
+       "pea_rapeseed_fallow": 128.2,
+       "chickpea_sunflower": 88.2
+      },
+      "exposure": {
+       "wheat_mono": 0.1129,
+       "lentil_flax": 0.1206,
+       "pea_rapeseed_fallow": 0.1556,
+       "chickpea_sunflower": 0.1077
+      },
+      "best_option_a": {
+       "max_income": "lentil_flax",
+       "save_moisture": "lentil_flax",
+       "restore_soil": "lentil_flax",
+       "minimize_risk": "lentil_flax",
+       "balanced": "lentil_flax"
+      }
+     }
+    ]
+   }
+  ]
+ },
  "variants": {
   "wheat_mono": {
    "crops": [
@@ -1492,13 +2702,13 @@
   }
  },
  "rule_counts": {
-  "total": 132,
-  "verified": 22,
+  "total": 149,
+  "verified": 23,
   "by_evidence": {
    "literature": 16,
-   "agronomist_review": 37,
-   "preliminary": 65,
-   "definition": 14
+   "agronomist_review": 39,
+   "preliminary": 79,
+   "definition": 15
   }
  }
 }

@@ -159,3 +159,21 @@ cover_crop:
   max_partial_share_low_uncertainty:
     {value: 0.5, unit: "доля месяцев окна с quality: partial", source: model_design, status: assumption, evidence: preliminary,
      note: "Если в месяцах окна больше половины месяцев посчитаны частично (GWETTOP, NDVI по среднему, неизвестные дни), неопределённость не ниже medium"}
+
+# ---------------------------------------------------------------- планировщик: дни без покрова в сценариях
+# Для каждого года сценария: дни без зелёного покрова = дни бесснежного сезона вне периода покрова культуры
+# (окна сева и уборки — crops.yaml), у пара — весь бесснежный сезон (crops.fallow.bare_whole_season).
+# Опасность = те же ветер и сухость, что в «Часах» (erosive_wind, dry_topsoil, snow), по многолетней
+# климатологии поля; NDVI не используется — покров задаёт календарь культуры. В балл почвы не входит
+# (docs/MODEL_AUDIT.md, § 7). Бесснежный сезон — медианы дат последнего весеннего и первого осеннего снежного дня
+# (правила snow), граница весны и осени — cover_crop.season_split_month.
+planner:
+  canopy_start:
+    {value: sowing_end, unit: "граница окна сева: sowing_start | sowing_mid | sowing_end", source: model_design, status: assumption, evidence: preliminary,
+     note: "Покров начинается в конце окна сева: почва без покрова и до сева, и от сева до всходов, а отдельного числа «дней до всходов» без источника не вводим. Чувствительность к началу и середине окна — make audit (docs/MODEL_AUDIT.md, § 7)"}
+  canopy_end:
+    {value: harvest_mid, unit: "граница окна уборки: harvest_start | harvest_mid | harvest_end", source: model_design, status: assumption, evidence: preliminary,
+     note: "Покров кончается в середине окна уборки — типичная дата уборки поля. После уборки стерня считается «без зелёного покрова», как в «Часах» (верхняя оценка, если стерня стоит). Чувствительность — make audit"}
+  # Варианты границ, для которых make audit показывает результат (чувствительность).
+  sensitivity_canopy_start: [sowing_start, sowing_mid, sowing_end]
+  sensitivity_canopy_end: [harvest_start, harvest_mid, harvest_end]
