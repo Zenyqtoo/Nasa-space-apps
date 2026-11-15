@@ -105,6 +105,8 @@
       "horizon": "Plan horizon",
       "demo_note": "Demo field: the crop history is a teaching scenario of “wheat many years in a row”. What was actually sown on this field has not been verified.",
       "years_one": "{{count}} year",
+      "years_few": "{{count}} years",
+      "years_many": "{{count}} years",
       "years_other": "{{count}} years"
     }
   },
@@ -491,12 +493,14 @@
     "delete_hint": "All analyses of the field are deleted with it.",
     "delete_confirm": "Delete field “{{name}}” and all its analyses?",
     "n_analyses_one": "{{count}} analysis",
+    "n_analyses_few": "{{count}} analyses",
+    "n_analyses_many": "{{count}} analyses",
     "n_analyses_other": "{{count}} analyses"
   },
   "bare_soil": {
     "headline": "Highest erosion exposure: {{months}}",
     "headline_none": "No month in this period has a computed median exposure.",
-    "headline_peak": "Peak monthly median: {{value}} (share of days)",
+    "headline_peak": "Peak monthly median: {{value}} (share of known days)",
     "months_pair": "{{a}} and {{b}}",
     "month": {
       "1": "January",
@@ -530,22 +534,33 @@
     "window_range": "{{start}} – {{end}}",
     "grid_title": "Exposure by month and year",
     "grid_label": "Erosion exposure by month and year, newest year first",
-    "legend_unit": "share of days in the month",
+    "legend_unit": "share of known days (joint / known)",
     "snow": "snow",
     "missing": "no data",
     "partial_marker": "partial",
     "cell_label": "{{month}} {{year}}: {{value}}. {{quality}}",
     "select_hint": "Select a month to see the days behind that cell.",
     "detail_title": "{{month}} {{year}}",
-    "bare_days": "Bare days",
+    "bare_days": "Days without green cover",
+    "known_days": "Known days (all three conditions)",
     "wind_days": "Erosive-wind days",
     "dry_days": "Dry days",
-    "joint": "Joint days / days in month",
+    "joint": "Joint days / known days",
     "joint_value": "{{joint}} / {{days}}",
     "moisture": "Moisture source",
     "moisture_smap": "SMAP",
     "moisture_power": "POWER fallback",
+    "moisture_mixed": "SMAP and POWER",
     "moisture_none": "—",
+    "missing_reason_label": "Why data is missing",
+    "missing_reason": {
+      "ndvi_pending_fetch": "satellite MODIS series still downloading",
+      "ndvi_gap": "no usable NDVI composite (clouds or gap in the series)",
+      "no_weather": "no NASA POWER weather data (wind)",
+      "future": "month has not occurred yet",
+      "ndvi_not_covered": "winter outside MODIS windows without dominant snow cover",
+      "no_moisture": "neither SMAP nor POWER GWETTOP available"
+    },
     "quality": "Quality",
     "quality_ok": "complete",
     "quality_partial": "partial",
@@ -555,7 +570,7 @@
     "state_ok": "computed",
     "state_snow": "snow",
     "state_missing": "no data",
-    "heatmap_caption": "Share of days with bare soil, erosive wind and dry topsoil on the same day, {{start}}–{{end}}.",
+    "heatmap_caption": "Share of known days with no green cover (bare soil or stubble), erosive wind and dry topsoil on the same day; where stubble stands, this is an upper bound. {{start}}–{{end}}.",
     "clim_title": "Typical exposure by month",
     "clim_median": "Median",
     "clim_p90": "P90",
@@ -566,6 +581,9 @@
     "windows_title": "Cover-crop windows",
     "windows_hint": "When a cover crop could protect bare soil before persistent frost.",
     "windows_empty": "No cover-crop window is suggested for this field.",
+    "general_guidance_badge": "General guidance, not a field-specific recommendation",
+    "advice_source_label": "Advice source",
+    "kk_review": "Kazakh text needs review",
     "uncertainty": "Uncertainty",
     "uncertainty_low": "low",
     "uncertainty_medium": "medium",
@@ -578,7 +596,7 @@
     "col_source": "Source",
     "col_status": "Status",
     "threshold": {
-      "ndvi_bare": "No green cover (NDVI)",
+      "ndvi_bare": "No green cover (bare soil or stubble)",
       "erosive_wind_ms": "Erosive wind",
       "dry_topsoil": "Dry topsoil"
     },
@@ -679,6 +697,8 @@
     "sm_caption": "0–5 cm layer, 9 km cell, April–May. This is not the moisture of the field's root zone.",
     "historical_note": "All series are historical data up to and including {{end}}. They are neither live measurements nor a weather forecast.",
     "last_months_one": "{{count}} month",
+    "last_months_few": "{{count}} months",
+    "last_months_many": "{{count}} months",
     "last_months_other": "{{count}} months"
   },
   "fieldmap": {
@@ -763,6 +783,8 @@
     "thresholds_hint": "All thresholds live in backend/app/rules/model.yaml",
     "threshold": "Threshold",
     "days_one": "{{count}} day",
+    "days_few": "{{count}} days",
+    "days_many": "{{count}} days",
     "days_other": "{{count}} days"
   },
   "overview": {

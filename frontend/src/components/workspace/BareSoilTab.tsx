@@ -3,7 +3,17 @@ import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "../../api/client";
-import type { BareSoil, BareSoilJob, BareSoilMonth, DataWarning, Job, Lang } from "../../api/types";
+import type {
+  BareSoil,
+  BareSoilCoverCropNote,
+  BareSoilCoverCropWindow,
+  BareSoilJob,
+  BareSoilMissingReason,
+  BareSoilMonth,
+  DataWarning,
+  Job,
+  Lang,
+} from "../../api/types";
 import { errorText, useAsync } from "../../lib/async";
 import { RAMPS } from "../../lib/colors";
 import { fmtNum } from "../../lib/format";
@@ -57,8 +67,22 @@ function fmtMonthDay(md: string, t: TFunction): string {
 function moistureLabel(src: string | null, t: TFunction): string {
   if (src === "smap") return t("bare_soil.moisture_smap");
   if (src === "power_gwettop") return t("bare_soil.moisture_power");
+  if (src === "mixed") return t("bare_soil.moisture_mixed");
   if (!src) return t("bare_soil.moisture_none");
   return src;
+}
+
+function missingReasonLabel(reason: BareSoilMissingReason | null | undefined, t: TFunction): string {
+  if (!reason) return "—";
+  const key = `bare_soil.missing_reason.${reason}`;
+  const label = t(key);
+  return label === key ? reason : label;
+}
+
+function NeedsReviewKk({ langs }: { langs?: readonly string[] }) {
+  const { t } = useTranslation();
+  if (!langs?.includes("kk")) return null;
+  return <span className="badge-amber text-xs">{t("bare_soil.kk_review")}</span>;
 }
 
 function warningText(w: DataWarning, t: TFunction): string {
@@ -77,11 +101,14 @@ function thresholdLabel(id: string, t: TFunction): string {
   return label === key ? id : label;
 }
 
+function sourceShort(id: string, t: TFunction): string {
+  const key = `sources.short.${id}`;
+  const label = t(key);
+  return label === key ? id : label;
+}
+
 function useBareSoilPolling(data: BareSoil | null, reload: () => void) {
-  const pending =
-    data && (data.status === "partial" || data.status === "loading")
-      ? data.jobs.filter((j) => j.status === "pending" && j.job)
-      : [];
+  const pending = data?.jobs.filter((j) => j.job?.status === "running") ?? [];
   const key = pending.map((j) => j.job?.id).filter((id): id is string => Boolean(id)).join("|");
   const [live, setLive] = useState<Record<string, Job>>({});
 
@@ -140,17 +167,17 @@ export default function BareSoilTab({ fieldId }: { fieldId: number }) {
   const climByMonth = new Map(d.climatology.map((c) => [c.month, c]));
   const climRows: ClimRow[] = MONTHS.map((month) => {
     const c = climByMonth.get(month);
-    const known = Boolean(c && c.n_years > 0);
     return {
       month,
       label: t(`bare_soil.month_short.${month}`),
-      median: known && c ? c.exposure_median : null,
-      p90: known && c ? c.exposure_p90 : null,
+      median: c && c.n_years > 0 ? c.exposure_median : null,
+      p90: c && c.n_years > 0 ? c.exposure_p90 : null,
       n: c?.n_years ?? 0,
     };
   });
   const climHas = climRows.some((r) => r.n > 0);
-  const yMax = Math.max(1, ...climRows.map((r) => Math.max(r.median ?? 0, r.p90 ?? 0)));
+  const climVals = climRows.flatMap((r) => [r.median, r.p90].filter((v): v is number => v !== null));
+  const yMax = Math.max(1, ...climVals, 0.01);
   const firstYear = years[0];
   const tabPos = pinned ?? (firstYear ? { y: firstYear.year, m: 1 } : null);
 
@@ -168,7 +195,7 @@ export default function BareSoilTab({ fieldId }: { fieldId: number }) {
     <div className="min-w-0 space-y-6" aria-busy={pending.length > 0}>
       {pending.length > 0 && (
         <Notice>
-          <p>{t("bare_soil.pending", { sources: pending.map((j) => j.source).join(", ") })}</p>
+          <p>{t("bare_soil.pending", { sources: pending.map((j) => sourceShort(j.source, t)).join(", ") })}</p>
           <ul className="mt-2 space-y-2">
             {pending.map((j) => {
               const job = jobSnapshot(j, live);
@@ -176,7 +203,7 @@ export default function BareSoilTab({ fieldId }: { fieldId: number }) {
               return (
                 <li key={j.job?.id ?? j.source}>
                   <div className="flex justify-between gap-3 text-xs">
-                    <span>{t("bare_soil.pending_progress", { source: j.source, done: job?.done ?? 0, total: job?.total ?? 0 })}</span>
+                    <span>{t("bare_soil.pending_progress", { source: sourceShort(j.source, t), done: job?.done ?? 0, total: job?.total ?? 0 })}</span>
                     {pct !== null && <span className="tabular-nums">{pct}%</span>}
                   </div>
                   {pct !== null && (
@@ -186,7 +213,7 @@ export default function BareSoilTab({ fieldId }: { fieldId: number }) {
                       aria-valuenow={job?.done ?? 0}
                       aria-valuemin={0}
                       aria-valuemax={job?.total ?? 0}
-                      aria-label={j.source}
+                      aria-label={t("bare_soil.pending_progress", { source: sourceShort(j.source, t), done: job?.done ?? 0, total: job?.total ?? 0 })}
                     >
                       <div className="h-full bg-field-700" style={{ width: `${pct}%` }} />
                     </div>
@@ -200,7 +227,7 @@ export default function BareSoilTab({ fieldId }: { fieldId: number }) {
 
       <header>
         <h2 className="h2">{headline}</h2>
-        {d.headline.top_months.length > 0 && (
+        {d.headline.top_months.length > 0 && d.headline.max_median_exposure !== null && (
           <p className="mt-1 text-sm text-ink-muted">{t("bare_soil.headline_peak", { value: fmtNum(d.headline.max_median_exposure, 2) })}</p>
         )}
         <p className="mt-2 text-sm leading-relaxed text-ink-2">{tx(d.definition.exposure, lang)}</p>
@@ -341,15 +368,22 @@ export default function BareSoilTab({ fieldId }: { fieldId: number }) {
                     <Detail label={t("bare_soil.bare_days")} value={fmtNum(shownCell?.bare_days, 0)} />
                     <Detail label={t("bare_soil.wind_days")} value={shownCell ? fmtNum(shownCell.erosive_wind_days, 0) : "—"} />
                     <Detail label={t("bare_soil.dry_days")} value={fmtNum(shownCell?.dry_days, 0)} />
+                    <Detail label={t("bare_soil.known_days")} value={fmtNum(shownCell?.known_days, 0)} />
                     <Detail
                       label={t("bare_soil.joint")}
                       value={
                         shownCell
-                          ? t("bare_soil.joint_value", { joint: fmtNum(shownCell.joint_days, 0), days: shownCell.days_in_month })
+                          ? t("bare_soil.joint_value", {
+                              joint: fmtNum(shownCell.joint_days, 0),
+                              days: fmtNum(shownCell.known_days, 0),
+                            })
                           : "—"
                       }
                     />
                     <Detail label={t("bare_soil.moisture")} value={moistureLabel(shownCell?.moisture_source ?? null, t)} />
+                    {shownCell?.state === "missing" && shownCell.missing_reason ? (
+                      <Detail label={t("bare_soil.missing_reason_label")} value={missingReasonLabel(shownCell.missing_reason, t)} />
+                    ) : null}
                     <div>
                       <dt className="text-xs text-ink-muted">{t("bare_soil.quality")}</dt>
                       <dd className="mt-0.5">
@@ -419,26 +453,7 @@ export default function BareSoilTab({ fieldId }: { fieldId: number }) {
         )}
       </ChartFrame>
 
-      <section>
-        <SectionTitle title={t("bare_soil.windows_title")} hint={t("bare_soil.windows_hint")} />
-        {d.cover_crop_windows.length === 0 ? (
-          <Notice>{t("bare_soil.windows_empty")}</Notice>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {d.cover_crop_windows.map((w) => (
-              <article key={`${w.start}-${w.end}`} className="card">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <h3 className="h3">{t("bare_soil.window_range", { start: fmtMonthDay(w.start, t), end: fmtMonthDay(w.end, t) })}</h3>
-                  <span className={w.uncertainty === "low" ? "badge-green" : w.uncertainty === "high" ? "badge-red" : "badge-amber"}>
-                    {t("bare_soil.uncertainty")}: {t(`bare_soil.uncertainty_${w.uncertainty}`)}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm leading-relaxed text-ink-2">{tx(w.basis, lang)}</p>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
+      <CoverCropSection windows={d.cover_crop_windows} note={d.cover_crop_note} lang={lang} fmtMonthDay={(md) => fmtMonthDay(md, t)} />
 
       {d.thresholds.length > 0 && (
         <section>
@@ -479,6 +494,65 @@ export default function BareSoilTab({ fieldId }: { fieldId: number }) {
         <SourceList sources={d.sources} periods={Object.fromEntries(d.sources.map((s) => [s.id, period]))} />
       </section>
     </div>
+  );
+}
+
+function CoverCropSection({
+  windows,
+  note,
+  lang,
+  fmtMonthDay,
+}: {
+  windows: BareSoilCoverCropWindow[];
+  note?: BareSoilCoverCropNote | null;
+  lang: Lang;
+  fmtMonthDay: (md: string) => string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <section>
+      <SectionTitle title={t("bare_soil.windows_title")} hint={t("bare_soil.windows_hint")} />
+      {windows.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {windows.map((w) => (
+            <article key={`${w.start}-${w.end}`} className="card space-y-2">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <h3 className="h3">{t("bare_soil.window_range", { start: fmtMonthDay(w.start), end: fmtMonthDay(w.end) })}</h3>
+                <span className={w.uncertainty === "low" ? "badge-green" : w.uncertainty === "high" ? "badge-red" : "badge-amber"}>
+                  {t("bare_soil.uncertainty")}: {t(`bare_soil.uncertainty_${w.uncertainty}`)}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm leading-relaxed text-ink-2">{tx(w.basis, lang)}</p>
+                <NeedsReviewKk langs={w.needs_review} />
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : note ? (
+        <article className="card space-y-3">
+          <p className="text-sm leading-relaxed text-ink-2">{tx(note.basis, lang)}</p>
+          <div className="space-y-2 border-t border-line pt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="badge-neutral text-xs">{t("bare_soil.general_guidance_badge")}</span>
+              <NeedsReviewKk langs={note.needs_review} />
+            </div>
+            <p className="text-sm leading-relaxed text-ink-2">{tx(note.advice, lang)}</p>
+            <div className="text-sm">
+              <span className="text-xs text-ink-muted">{t("bare_soil.advice_source_label")}: </span>
+              <a href={note.advice_source.url} target="_blank" rel="noopener noreferrer" className="text-field-800 underline">
+                {note.advice_source.name}
+              </a>
+              <span className="ml-2 inline-flex align-middle">
+                <StatusBadge status={note.advice_source.status} />
+              </span>
+            </div>
+          </div>
+        </article>
+      ) : (
+        <Notice>{t("bare_soil.windows_empty")}</Notice>
+      )}
+    </section>
   );
 }
 

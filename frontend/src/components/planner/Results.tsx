@@ -10,6 +10,7 @@ import ScoreRow from "../results/ScoreRow";
 import StressTest from "../results/StressTest";
 import { variantName } from "../results/VariantCards";
 import { KindBadge, SectionTitle } from "../ui/ui";
+import { bareSoilDaysCell, bareSoilExposureCell, bareSoilLine, hasAnyBareSoilMetrics } from "./bareSoilMetrics";
 import { rank, SCORE_KEYS, type Ranked } from "./weights";
 
 const LETTERS = "ABCDEF";
@@ -82,6 +83,10 @@ function Recommendation({ comparison, ranked, customWeights }: { comparison: Com
             {v.explanation.map((e, i) => (
               <li key={`${e.code}-${i}`} className={e.code === "assumptions" ? "text-amber-900" : ""}>{e[lang]}</li>
             ))}
+            {(() => {
+              const line = bareSoilLine(v, t);
+              return line ? <li>{line}</li> : null;
+            })()}
           </ul>
         </div>
         <div className="space-y-4 text-sm">
@@ -131,6 +136,7 @@ function ComparisonTable({ comparison, ranked }: { comparison: Comparison; ranke
     </tr>
   );
   const kzt = (v: number) => `${fmtInt(v)}`;
+  const showBareSoil = hasAnyBareSoilMetrics(ranked.map((r) => r.v));
   return (
     <div className="panel overflow-x-auto">
       <table className="table min-w-[760px]">
@@ -168,11 +174,54 @@ function ComparisonTable({ comparison, ranked }: { comparison: Comparison; ranke
           {row(t("planner.water_deficit"), (r) => fmtNum(r.v.totals.water_deficit_mean_mm, 0), { hint: t("units.mm") })}
           {row(t("planner.drought_loss"), (r) => `${fmtNum(r.v.totals.drought_loss_pct, 1)} %`, { hint: t("planner.drought_loss_hint", { year: comparison.conditions.dry_year }) })}
           {row(t("planner.monoculture"), (r) => r.v.totals.monoculture_years)}
+          {showBareSoil &&
+            row(t("planner.bare_days_per_year"), (r) => bareSoilDaysCell(r.v), { hint: t("planner.bare_days_hint"), kind: "simulation" })}
+          {showBareSoil &&
+            row(t("planner.exposure_index"), (r) => bareSoilExposureCell(r.v), { hint: t("planner.exposure_index_hint"), kind: "simulation" })}
           {row(t("planner.confidence"), (r) => t(`planner.conf.${r.v.confidence.level}`))}
           {row(t("planner.assumptions"), (r) => `${r.v.assumptions_used} / ${r.v.params_used}`, { hint: t("planner.assumptions_hint") })}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function VariantExplanations({ comparison }: { comparison: Comparison }) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language as Lang;
+  const visible = comparison.variants.some((v) => v.explanation.length > 0 || bareSoilLine(v, t));
+  if (!visible) return null;
+  return (
+    <section>
+      <SectionTitle title={t("result.sections.explain")} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        {comparison.variants.map((v, i) => {
+          const line = bareSoilLine(v, t);
+          if (v.explanation.length === 0 && !line) return null;
+          return (
+            <article key={v.id} className={`card ${v.fits_priority ? "ring-2 ring-field-300" : ""}`}>
+              <h3 className="h3 mb-2">
+                <span
+                  className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded text-[11px] font-semibold text-white"
+                  style={{ background: seriesColor(i) }}
+                >
+                  {LETTERS[i]}
+                </span>
+                {variantName(v, lang, t)}
+              </h3>
+              <ul className="list-disc space-y-1.5 pl-5 text-sm text-ink-2">
+                {v.explanation.map((e, j) => (
+                  <li key={`${e.code}-${j}`} className={e.code === "assumptions" ? "text-amber-900" : ""}>
+                    {e[lang]}
+                  </li>
+                ))}
+                {line ? <li>{line}</li> : null}
+              </ul>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -208,6 +257,7 @@ export default function Results({ comparison, weights, customWeights }: { compar
         <SectionTitle title={t("planner.compare_title")} hint={t("planner.compare_hint")} />
         <ComparisonTable comparison={comparison} ranked={ranked} />
       </section>
+      <VariantExplanations comparison={comparison} />
       <section>
         <SectionTitle title={t("planner.scores_title")} hint={t("planner.scores_hint")} />
         <ScoreDetails comparison={comparison} />

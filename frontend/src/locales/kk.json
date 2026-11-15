@@ -104,6 +104,8 @@
       "priority_hint": "Басымдық тек бағалардың салмағын өзгертеді. Барлық нұсқалар экранда қалады.",
       "horizon": "Жоспар көкжиегі",
       "years_one": "{{count}} жыл",
+      "years_few": "{{count}} жыл",
+      "years_many": "{{count}} жыл",
       "years_other": "{{count}} жыл",
       "demo_note": "Демо-егістік: дақылдар тарихы — «қатарынан көп жыл бидай» оқу сценарийі. Бұл егістікке іс жүзінде не себілгені тексерілмеген."
     }
@@ -491,12 +493,14 @@
     "delete_hint": "Егістікпен бірге оның барлық талдаулары жойылады.",
     "delete_confirm": "«{{name}}» егістігін және оның барлық талдауларын жою керек пе?",
     "n_analyses_one": "{{count}} талдау",
+    "n_analyses_few": "{{count}} талдау",
+    "n_analyses_many": "{{count}} талдау",
     "n_analyses_other": "{{count}} талдау"
   },
   "bare_soil": {
     "headline": "Жел эрозиясының ең жоғары қаупі: {{months}}",
     "headline_none": "Бұл кезеңде есептелген айлық медиана жоқ.",
-    "headline_peak": "Айлық медиананың шыңы: {{value}} (күндер үлесі)",
+    "headline_peak": "Айлық медиананың шыңы: {{value}} (белгілі күндер үлесі)",
     "months_pair": "{{a}} және {{b}}",
     "month": {
       "1": "қаңтар",
@@ -530,22 +534,33 @@
     "window_range": "{{start}} – {{end}}",
     "grid_title": "Ай мен жыл бойынша қауіп",
     "grid_label": "Жел эрозиясының қаупі ай мен жыл бойынша, жаңа жыл жоғарыда",
-    "legend_unit": "айдағы күндердің үлесі",
+    "legend_unit": "белгілі күндер үлесі (joint / known)",
     "snow": "қар",
     "missing": "дерек жоқ",
     "partial_marker": "толық емес",
     "cell_label": "{{month}} {{year}}: {{value}}. {{quality}}",
     "select_hint": "Ұяшықтың күндерін көру үшін айды таңдаңыз.",
     "detail_title": "{{month}} {{year}}",
-    "bare_days": "Жамылғысыз күндер",
+    "bare_days": "Жасыл жамылғысыз күндер",
+    "known_days": "Белгілі күндер (үш шарттың барлығы)",
     "wind_days": "Эрозиялық желді күндер",
     "dry_days": "Құрғақ күндер",
-    "joint": "Сәйкес күндер / айдағы күндер",
+    "joint": "Сәйкес күндер / белгілі күндер",
     "joint_value": "{{joint}} / {{days}}",
     "moisture": "Ылғал дереккөзі",
     "moisture_smap": "SMAP",
     "moisture_power": "POWER қоры",
+    "moisture_mixed": "SMAP және POWER",
     "moisture_none": "—",
+    "missing_reason_label": "Неге дерек жоқ",
+    "missing_reason": {
+      "ndvi_pending_fetch": "MODIS спутниктік қатарын әлі жүктеп жатырмыз",
+      "ndvi_gap": "жарамды NDVI композиті жоқ (бұлт немесе қатардағы үзіліс)",
+      "no_weather": "NASA POWER ауа райы жоқ (жел)",
+      "future": "ай әлі келмеді",
+      "ndvi_not_covered": "MODIS терезелерінен тыс қыс, қар басым емес",
+      "no_moisture": "SMAP пен POWER GWETTOP жоқ"
+    },
     "quality": "Сапа",
     "quality_ok": "толық",
     "quality_partial": "толық емес",
@@ -555,7 +570,7 @@
     "state_ok": "есептелген",
     "state_snow": "қар",
     "state_missing": "дерек жоқ",
-    "heatmap_caption": "Бір күнде топырақ ашық, жел эрозиялық және беткі қабат құрғақ болған күндердің үлесі, {{start}}–{{end}}.",
+    "heatmap_caption": "Бір күнде жасыл жамылғы жоқ (ашық топырақ немесе аңыз), жел эрозиялық және беткі қабат құрғақ болған белгілі күндердің үлесі; аңыз тік тұрса — жоғарғы баға. {{start}}–{{end}}.",
     "clim_title": "Ай бойынша әдеттегі экспозиция",
     "clim_median": "Медиана",
     "clim_p90": "P90",
@@ -566,6 +581,9 @@
     "windows_title": "Жабын дақыл терезелері",
     "windows_hint": "Тұрақты аязға дейін жабын дақыл топырақты қашан қорғай алады.",
     "windows_empty": "Бұл егістік үшін жабын дақыл терезесі ұсынылмаған.",
+    "general_guidance_badge": "Жалпы ұсыныс, егістікке байланысты емес",
+    "advice_source_label": "Кеңес дереккөзі",
+    "kk_review": "Қазақша мәтін тексеруді қажет етеді",
     "uncertainty": "Белгісіздік",
     "uncertainty_low": "төмен",
     "uncertainty_medium": "орташа",
@@ -578,7 +596,7 @@
     "col_source": "Дереккөз",
     "col_status": "Күйі",
     "threshold": {
-      "ndvi_bare": "Жасыл жамылғы жоқ (NDVI)",
+      "ndvi_bare": "Жасыл жамылғы жоқ (ашық топырақ немесе аңыз)",
       "erosive_wind_ms": "Эрозиялық жел",
       "dry_topsoil": "Құрғақ беткі қабат"
     },
@@ -679,6 +697,8 @@
     "sm_caption": "0–5 см қабат, 9 км ұяшық, сәуір–мамыр. Бұл егістіктің тамыр қабатының ылғалдылығы емес.",
     "historical_note": "Барлық қатарлар — {{end}} қоса алғандағы тарихи деректер. Бұл ағымдағы өлшеулер де, ауа райы болжамы да емес.",
     "last_months_one": "{{count}} ай",
+    "last_months_few": "{{count}} ай",
+    "last_months_many": "{{count}} ай",
     "last_months_other": "{{count}} ай"
   },
   "fieldmap": {
@@ -763,6 +783,8 @@
     "thresholds_hint": "Барлық шектер — backend/app/rules/model.yaml",
     "threshold": "Шек",
     "days_one": "{{count}} күн",
+    "days_few": "{{count}} күн",
+    "days_many": "{{count}} күн",
     "days_other": "{{count}} күн"
   },
   "overview": {

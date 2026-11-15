@@ -76,9 +76,11 @@ function buildMonth(year: number, month: number): BareSoilMonth {
       dry_days: null,
       joint_days: null,
       days_in_month,
+      known_days: days_in_month,
       exposure: null,
       moisture_source: null,
       quality: "ok",
+      missing_reason: null,
     };
   }
 
@@ -91,19 +93,28 @@ function buildMonth(year: number, month: number): BareSoilMonth {
       dry_days: null,
       joint_days: null,
       days_in_month,
+      known_days: Math.max(0, Math.round(days_in_month * 0.15)),
       exposure: null,
       moisture_source: null,
       quality: "missing",
+      missing_reason: month === 11 ? "ndvi_pending_fetch" : "ndvi_gap",
     };
   }
 
   const cells = okMonthCells(year, month, days_in_month);
+  const known = cells.quality === "partial" ? Math.round(days_in_month * 0.85) : days_in_month;
+  const joint = cells.joint_days ?? 0;
+  const exposure = known > 0 ? Math.round((joint / known) * 100) / 100 : cells.exposure;
   return {
     month,
     state: "ok",
     erosive_wind_days: wind,
     days_in_month,
+    known_days: known,
+    missing_reason: null,
     ...cells,
+    joint_days: joint,
+    exposure,
   };
 }
 
@@ -127,7 +138,7 @@ function buildClimatology(years: BareSoilYear[]): BareSoilClimatologyMonth[] {
     exposures.sort((a, b) => a - b);
     const n = exposures.length;
     if (!n) {
-      out.push({ month, exposure_median: 0, exposure_p90: 0, n_years: 0 });
+      out.push({ month, exposure_median: null, exposure_p90: null, n_years: 0 });
       continue;
     }
     const mid = Math.floor(n / 2);
@@ -138,9 +149,11 @@ function buildClimatology(years: BareSoilYear[]): BareSoilClimatologyMonth[] {
   return out;
 }
 
-function topMonthsFromClimatology(clim: BareSoilClimatologyMonth[]): { top_months: number[]; max_median_exposure: number } {
-  const ranked = [...clim].filter((c) => c.n_years > 0).sort((a, b) => b.exposure_median - a.exposure_median);
-  const max_median_exposure = ranked[0]?.exposure_median ?? 0;
+function topMonthsFromClimatology(clim: BareSoilClimatologyMonth[]): { top_months: number[]; max_median_exposure: number | null } {
+  const ranked = [...clim]
+    .filter((c) => c.n_years > 0 && c.exposure_median !== null)
+    .sort((a, b) => (b.exposure_median ?? 0) - (a.exposure_median ?? 0));
+  const max_median_exposure = ranked[0]?.exposure_median ?? null;
   const top_months = ranked.slice(0, 2).map((c) => c.month).sort((a, b) => a - b);
   return { top_months, max_median_exposure };
 }
@@ -161,6 +174,7 @@ export function mockBareSoil(fieldId: number, startYear?: number, endYear?: numb
     headline,
     definition: SEED.definition,
     thresholds: SEED.thresholds,
+    effective_thresholds: (SEED as { effective_thresholds?: Record<string, string | number | null> }).effective_thresholds ?? null,
     years,
     climatology,
     cover_crop_windows: SEED.cover_crop_windows,

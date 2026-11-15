@@ -313,6 +313,10 @@ export interface VariantResult {
   explanation: ({ code: string } & I18nText)[];
   confidence: Confidence;
   economics: Economics;
+  /** Среднее число дней голой почвы в год по модели сроков посева/уборки (опционально с бэкенда). */
+  bare_days_per_year?: number | null;
+  /** Индекс экспозиции эрозии 0–1 за те же годы (опционально). */
+  exposure_index?: number | null;
 }
 
 export interface Comparison {
@@ -644,18 +648,28 @@ export interface Economics {
 
 export type BareSoilMonthState = "ok" | "snow" | "missing";
 export type BareSoilMonthQuality = "ok" | "partial" | "missing";
+export type BareSoilMissingReason =
+  | "ndvi_pending_fetch"
+  | "ndvi_gap"
+  | "no_weather"
+  | "future"
+  | "ndvi_not_covered"
+  | "no_moisture";
+export type BareSoilMoistureSource = "smap" | "power_gwettop" | "mixed";
 
 export interface BareSoilMonth {
   month: number;
   state: BareSoilMonthState;
   bare_days: number | null;
-  erosive_wind_days: number;
+  erosive_wind_days: number | null;
   dry_days: number | null;
   joint_days: number | null;
   days_in_month: number;
+  known_days?: number | null;
   exposure: number | null;
-  moisture_source: string | null;
+  moisture_source: BareSoilMoistureSource | null;
   quality: BareSoilMonthQuality;
+  missing_reason?: BareSoilMissingReason | null;
 }
 
 export interface BareSoilYear {
@@ -675,8 +689,8 @@ export interface BareSoilThreshold {
 
 export interface BareSoilClimatologyMonth {
   month: number;
-  exposure_median: number;
-  exposure_p90: number;
+  exposure_median: number | null;
+  exposure_p90: number | null;
   n_years: number;
 }
 
@@ -685,6 +699,21 @@ export interface BareSoilCoverCropWindow {
   end: string;
   basis: I18nText;
   uncertainty: "low" | "medium" | "high";
+  needs_review?: Lang[];
+}
+
+export interface BareSoilAdviceSource {
+  name: string;
+  url: string;
+  status: Status;
+}
+
+export interface BareSoilCoverCropNote {
+  basis: I18nText;
+  advice: I18nText;
+  advice_scope: "general_guidance";
+  advice_source: BareSoilAdviceSource;
+  needs_review?: Lang[];
 }
 
 export interface BareSoilJob {
@@ -698,12 +727,14 @@ export interface BareSoil {
   period: { start_year: number; end_year: number };
   status: string;
   jobs: BareSoilJob[];
-  headline: { top_months: number[]; max_median_exposure: number };
+  headline: { top_months: number[]; max_median_exposure: number | null };
   definition: { exposure: I18nText };
   thresholds: BareSoilThreshold[];
+  effective_thresholds?: Record<string, string | number | null> | null;
   years: BareSoilYear[];
   climatology: BareSoilClimatologyMonth[];
   cover_crop_windows: BareSoilCoverCropWindow[];
+  cover_crop_note?: BareSoilCoverCropNote | null;
   sources: SourceMeta[];
   warnings: DataWarning[];
 }
