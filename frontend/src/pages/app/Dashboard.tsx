@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
 import type { FieldRecord, Lang, Risk, RiskLevel } from "../../api/types";
+import TelegramBotCard from "../../components/common/TelegramBotCard";
 import FieldThumb from "../../components/fields/FieldThumb";
 import { RiskGrid, useRiskText } from "../../components/workspace/RiskCards";
 import { EmptyState, ErrorBox, LevelBadge, Loading, Notice, PageHeader, SectionTitle, Stat } from "../../components/ui/ui";
@@ -76,6 +77,8 @@ export default function Dashboard() {
           </>
         }
       />
+
+      <TelegramBotCard />
 
       {fields.error ? <ErrorBox message={errorText(fields.error, t)} onRetry={fields.reload} /> : null}
       {fields.loading && !fields.data && <Loading />}

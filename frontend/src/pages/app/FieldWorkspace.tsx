@@ -1,9 +1,10 @@
-import { AlertTriangle, BarChart3, FileDown, History as HistoryIcon, LayoutGrid, Map as MapIcon, Pencil, Scale, Sprout } from "lucide-react";
+import { AlertTriangle, BarChart3, FileDown, History as HistoryIcon, LayoutGrid, Map as MapIcon, Pencil, Scale, Sprout, Wind } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
 import type { Analysis, Lang } from "../../api/types";
+import BareSoilTab from "../../components/workspace/BareSoilTab";
 import FieldMap from "../../components/workspace/FieldMap";
 import History from "../../components/workspace/History";
 import Monitoring from "../../components/workspace/Monitoring";
@@ -18,9 +19,9 @@ import { useConfig } from "../../lib/config";
 import { fmtNum } from "../../lib/format";
 import { tx } from "../../lib/i18n-text";
 
-const TABS = ["overview", "monitoring", "map", "history", "risk", "planner", "suitability", "reports"] as const;
+const TABS = ["overview", "monitoring", "map", "history", "bare_soil", "risk", "planner", "suitability", "reports"] as const;
 type Tab = (typeof TABS)[number];
-const ICONS: Record<Tab, typeof MapIcon> = { overview: LayoutGrid, monitoring: BarChart3, map: MapIcon, history: HistoryIcon, risk: AlertTriangle, planner: Scale, suitability: Sprout, reports: FileDown };
+const ICONS: Record<Tab, typeof MapIcon> = { overview: LayoutGrid, monitoring: BarChart3, map: MapIcon, history: HistoryIcon, bare_soil: Wind, risk: AlertTriangle, planner: Scale, suitability: Sprout, reports: FileDown };
 
 export default function FieldWorkspace() {
   const { t, i18n } = useTranslation();
@@ -61,6 +62,7 @@ export default function FieldWorkspace() {
       case "monitoring": return <Monitoring fieldId={f.id} />;
       case "map": return <FieldMap fieldId={f.id} geometry={f.geometry} />;
       case "history": return <History fieldId={f.id} />;
+      case "bare_soil": return <BareSoilTab fieldId={f.id} />;
       case "risk": return <RiskTab fieldId={f.id} />;
       case "planner": return <Planner field={f} overview={overview} />;
       case "suitability": return <SuitabilityTab fieldId={f.id} />;

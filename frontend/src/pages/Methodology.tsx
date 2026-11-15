@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import type { Evidence, Lang, RulesCatalog } from "../api/types";
+import SourceStateBadge from "../components/common/SourceStateBadge";
 import Spinner from "../components/common/Spinner";
 import StatusBadge from "../components/common/StatusBadge";
+import { tx } from "../lib/i18n-text";
 
 function fmtValue(v: unknown): string {
   if (v === null || v === undefined) return "—";
@@ -57,9 +59,7 @@ export default function Methodology() {
             <article key={s.id} className="card space-y-2 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="h3">{s.title}</h3>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${s.state === "active" ? "bg-surface text-field-800" : "bg-surface-sunken text-ink"}`}>
-                  {t(`methodology.state.${s.state}`)}
-                </span>
+                <SourceStateBadge state={s.state} />
               </div>
               <p className="text-ink-2">{s.provider} · <a href={s.url} target="_blank" rel="noreferrer" className="break-all">{s.url}</a>{s.doi && <> · <a href={s.doi} target="_blank" rel="noreferrer">DOI</a></>}</p>
               <dl className="space-y-1.5">
@@ -75,7 +75,7 @@ export default function Methodology() {
                 ).map(([k, v]) => (
                   <div key={k}>
                     <dt className="font-semibold">{t(`methodology.${k}`)}</dt>
-                    <dd>{v[lang]}</dd>
+                    <dd>{tx(v, lang)}</dd>
                   </div>
                 ))}
                 <div>

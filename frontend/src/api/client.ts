@@ -3,6 +3,7 @@ import type {
   AnalysisInput,
   AnalysisListItem,
   AppConfig,
+  BareSoil,
   CompareRequest,
   Comparison,
   DemoField,
@@ -115,6 +116,18 @@ export const api = {
   fieldRisk: (id: number) => request<Risk>(`/fields/${id}/risk`),
   fieldSuitability: (id: number) => request<Suitability>(`/fields/${id}/suitability`),
   fieldLayer: (id: number, kind: string, date?: string) => request<LayerResponse>(`/fields/${id}/layers/${kind}${date ? `?date=${date}` : ""}`),
+  async fieldBareSoil(id: number, startYear?: number, endYear?: number): Promise<BareSoil> {
+    if (import.meta.env.VITE_USE_MOCKS === "1") {
+      await new Promise((r) => setTimeout(r, 600));
+      const { mockBareSoil } = await import("./mocks/bareSoil");
+      return mockBareSoil(id, startYear, endYear);
+    }
+    const q = new URLSearchParams();
+    if (startYear !== undefined) q.set("start_year", String(startYear));
+    if (endYear !== undefined) q.set("end_year", String(endYear));
+    const qs = q.toString();
+    return request<BareSoil>(`/fields/${id}/bare-soil${qs ? `?${qs}` : ""}`);
+  },
 
   // анализы
   recentAnalyses: (limit = 10) => request<{ analyses: AnalysisListItem[] }>(`/analyses?limit=${limit}`),

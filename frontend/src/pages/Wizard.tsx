@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import type { Analysis, CompareRequest, Comparison, DemoField, HistoryItem, Job, Lang, Variant } from "../api/types";
+import { bareSoilLine } from "../components/planner/bareSoilMetrics";
 import Disclaimer from "../components/common/Disclaimer";
 import Spinner from "../components/common/Spinner";
 import ResultMap from "../components/map/ResultMap";
@@ -166,6 +167,10 @@ function Results({ request, customCrops, onCustom }: { request: CompareRequest; 
                       {v.explanation.map((e, i) => (
                         <li key={`${e.code}-${i}`} className={e.code === "assumptions" ? "text-sm text-amber-900" : ""}>{e[lang]}</li>
                       ))}
+                      {(() => {
+                        const line = bareSoilLine(v, t);
+                        return line ? <li>{line}</li> : null;
+                      })()}
                     </ul>
                   </article>
                 ))}

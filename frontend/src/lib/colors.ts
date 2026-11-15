@@ -32,4 +32,6 @@ export const RAMPS: Record<string, (t: number) => string> = {
   ndvi: ramp([[0, "#f3efe0"], [0.5, "#9cc27a"], [1, "#1f5d14"]]),
   soil_moisture: ramp([[0, "#eef4fb"], [0.5, "#7fb0e0"], [1, "#1c4f8f"]]),
   precip: ramp([[0, "#eef4fb"], [0.5, "#7fb0e0"], [1, "#1c4f8f"]]),
+  // Экспозиция голой почвы: светлый песок → тёмная охра. В ячейке всегда есть число.
+  exposure: ramp([[0, "#F8F5F0"], [0.5, "#CDB48F"], [1, "#5F4728"]]),
 };
