@@ -188,6 +188,11 @@ def test_climatology_and_headline_shape(ctx):
     for w in body["cover_crop_windows"]:
         assert w["needs_review"] == ["kk"] and w["basis"]["kk"].endswith(bs.KK_REVIEW.strip())
         assert w["uncertainty"] in ("low", "medium", "high")
+        assert w["start"] >= body["effective_thresholds"]["harvest_end"]
+    if not body["cover_crop_windows"]:
+        assert body["cover_crop_note"]["reason"] and body["cover_crop_note"]["basis"]["ru"]
+    else:
+        assert body["cover_crop_note"] is None
 
 
 def test_explicit_period(ctx):
@@ -430,14 +435,60 @@ def test_climatology_headline_and_cover_crop_windows():
     clim = bs.climatology(years, E)
     assert clim[7]["exposure_median"] == 0.4 and clim[7]["n_years"] == 12
     assert bs.headline(clim, E) == {"top_months": [8], "max_median_exposure": 0.4}
-    frost = {"n_years": 12, "last_spring": date(2001, 5, 10), "first_autumn": date(2001, 10, 1)}
-    w = bs.cover_crop_windows(clim, years, frost, E)
-    assert len(w) == 1 and w[0]["start"] == "08-01" and w[0]["end"] == "08-31"
-    assert w[0]["uncertainty"] == "low" and w[0]["needs_review"] == ["kk"]
-    assert w[0]["basis"]["kk"].endswith("(ана тілінде тексеру қажет)")
-    assert set(w[0]["basis"]) == {"ru", "kk", "en"} and "61" in w[0]["basis"]["en"]
-    late = {**frost, "first_autumn": date(2001, 8, 20)}  # до заморозка меньше min_frost_free_days
-    assert bs.cover_crop_windows(clim, years, late, E) == []
+    frost = {"n_years": 12, "last_spring": date(2001, 5, 10), "first_autumn": date(2001, 11, 15)}
+    cc = bs.cover_crop_windows(clim, years, frost, E, None)
+    assert cc["windows"] == [] and cc["note"]["reason"] == "no_harvest_date"
+    # август — до уборки (01.10): окна нет, текст объясняет почему
+    cc = bs.cover_crop_windows(clim, years, frost, E, "akmola")
+    assert cc["windows"] == [] and cc["note"]["reason"] == "risk_before_harvest_only"
+    assert "август" in cc["note"]["basis"]["ru"] and "сев–уборка" in cc["note"]["basis"]["ru"]
+    assert cc["note"]["needs_review"] == ["kk"] and cc["note"]["basis"]["kk"].endswith("(ана тілінде тексеру қажет)")
+
+
+def _years_with(exposure: dict[int, float]) -> list[dict]:
+    return [{"year": y, "months": [{"month": m, "state": "ok", "quality": "ok", "exposure": exposure.get(m, 0.0)}
+                                   for m in range(1, 13)]} for y in range(2010, 2022)]
+
+
+def test_cover_crop_window_starts_after_harvest_only():
+    years = _years_with({5: 0.3, 9: 0.3, 10: 0.4, 11: 0.4})
+    clim = bs.climatology(years, E)
+    harvest = date.fromisoformat("2001-" + E["cover_crop"]["harvest_end"]["kostanay"].value)
+    frost = {"n_years": 12, "last_spring": date(2001, 5, 7), "first_autumn": date(2001, 12, 1)}
+    cc = bs.cover_crop_windows(clim, years, frost, E, "kostanay")
+    assert cc["note"] is None and len(cc["windows"]) == 1
+    w = cc["windows"][0]
+    # май (сев) и сентябрь (до уборки) не попадают в окно; окно — с даты окончания уборки
+    assert w["start"] == harvest.strftime("%m-%d") and w["end"] == "11-30"
+    assert harvest.strftime("%d.%m") in w["basis"]["ru"]
+    for win in cc["windows"]:
+        assert date.fromisoformat("2001-" + win["start"]) >= harvest
+
+
+def test_cover_crop_no_window_when_frost_before_establishment():
+    """Как у демо-полей: опасны май и осень, но заморозок раньше, чем покровная культура взойдёт."""
+    years = _years_with({5: 0.29, 9: 0.23, 10: 0.26, 11: 0.47})
+    clim = bs.climatology(years, E)
+    frost = {"n_years": 11, "last_spring": date(2001, 5, 7), "first_autumn": date(2001, 9, 29)}
+    cc = bs.cover_crop_windows(clim, years, frost, E, "kostanay")
+    assert cc["windows"] == [] and cc["note"]["reason"] == "frost_before_establishment"
+    ru, en = cc["note"]["basis"]["ru"], cc["note"]["basis"]["en"]
+    assert "май (0,29)" in ru and "до окончания уборки" in ru and "29.09" in ru
+    assert "before a cover crop could establish" in en
+    # заморозок позже уборки, но дней меньше min_frost_free_days
+    frost2 = {**frost, "first_autumn": date(2001, 10, 20)}
+    cc = bs.cover_crop_windows(clim, years, frost2, E, "kostanay")
+    assert cc["windows"] == [] and cc["note"]["reason"] == "frost_before_establishment"
+    assert "только 19 дн." in cc["note"]["basis"]["ru"]
+
+
+def test_cover_crop_no_risky_months_and_no_frost():
+    years = _years_with({})
+    clim = bs.climatology(years, E)
+    frost = {"n_years": 11, "last_spring": date(2001, 5, 7), "first_autumn": date(2001, 9, 29)}
+    assert bs.cover_crop_windows(clim, years, frost, E, "akmola")["note"]["reason"] == "no_risky_months"
+    none = {"n_years": 0, "last_spring": None, "first_autumn": None}
+    assert bs.cover_crop_windows(clim, years, none, E, "akmola")["note"]["reason"] == "no_frost_data"
 
 
 def test_frost_dates_from_t2m_min():

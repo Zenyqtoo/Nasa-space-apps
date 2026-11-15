@@ -75,13 +75,18 @@ async def main() -> None:
     s = await mon.suitability(demo["geometry"], demo["region"], demo["history"])
     print("Пригодность: " + ", ".join(f"{c['crop']}={c['category']}" for c in s["crops"]))
     for rec in demo_field_records():
-        b = await bare_soil(0, rec["geometry"], None, None)
+        b = await bare_soil(0, rec["geometry"], None, None, region=rec["region"])
         months = [m for y in b["years"] for m in y["months"]]
         count = {st: sum(m["state"] == st for m in months) for st in ("ok", "snow", "missing")}
         pending = sum(m["missing_reason"] == "ndvi_pending_fetch" for m in months)
         print(f"Часы голой почвы, {rec['id']} {b['period']['start_year']}–{b['period']['end_year']}: status {b['status']}, "
               f"месяцев ok {count['ok']}, снег {count['snow']}, нет данных {count['missing']} "
               f"(ждут MODIS межсезонья {pending}); самые опасные месяцы {b['headline']['top_months']}")
+        he = b["effective_thresholds"]["harvest_end"]
+        wins = [(w["start"], w["end"]) for w in b["cover_crop_windows"]]
+        print(f"  окна покровных культур (после уборки {he}): {wins or 'нет — ' + b['cover_crop_note']['reason']}")
+        if any(w[0] < he for w in wins) or (not wins and not b["cover_crop_note"]):
+            raise SystemExit(f"Окно покровной культуры до уборки или без объяснения: {rec['id']}")
         if b["status"] in ("missing", "loading") or not count["ok"]:
             raise SystemExit(f"«Часы голой почвы» не посчитаны для {rec['id']}: {[w['code'] for w in b['warnings']]}")
         if any(m["state"] == "missing" and m["exposure"] is not None for m in months):

@@ -155,6 +155,11 @@ power_parameters:
   url: "https://power.larc.nasa.gov/api/system/manager/parameters?community=AG&temporal=daily&parameters=WS2M_MAX,GWETTOP,SNODP,FRSNO"
   note: "Сверено с ответом API при разработке"
 
+kz_harvest_reports:
+  name: "Сводки об окончании уборки зерновых по областям (новости по данным акиматов): Костанайская — завершена к 07.10.2022 (caravan.kz), 95,1 % площади на 16.10.2025 (inbusiness.kz); Акмолинская — завершена 26.10.2025 (zakon.kz, https://www.zakon.kz/sobytiia/6495657-akmolinskaya-oblast-sobrala-rekordnye-76-milliona-tonn-zerna.html; https://www.inbusiness.kz/ru/last/uborka-2025-s-kakimi-pokazatelyami-idut-k-finishu-dva-severnyh-regiona-rk)"
+  url: "https://www.caravan.kz/news/v-kostanajjskojj-oblasti-zavershili-uborochnye-raboty-zernovykh-i-zernobobovykh-kultur-882853/"
+  note: "Даты публикаций сверены 15.11.2026. Это новостные сводки за отдельные годы по всей области, а не агрономическая рекомендация и не многолетняя статистика"
+
 etccdi_indices:
   name: "ETCCDI (CCl/CLIVAR/JCOMM Expert Team on Climate Change Detection and Indices), список 27 основных индексов: FD — число дней, когда минимальная суточная температура ниже 0 °C"
   url: "https://etccdi.pacificclimate.org/list_27_indices.shtml"

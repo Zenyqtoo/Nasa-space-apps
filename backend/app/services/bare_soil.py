@@ -127,7 +127,7 @@ def _job_entry(sid: str, state: dict) -> dict:
 
 
 async def compute(field: Field, start: int, end: int, rules: Rules, *, start_jobs: bool = True,
-                  today: date | None = None) -> dict:
+                  today: date | None = None, region: str | None = None) -> dict:
     """Расчёт по данным: годы, климатология, окна, источники, предупреждения, задачи."""
     e = rules.erosion
     today = today or date.today()
@@ -145,7 +145,7 @@ async def compute(field: Field, start: int, end: int, rules: Rules, *, start_job
 
     years = month_grid(start, end)
     result = {"years": years, "climatology": [], "headline": {"top_months": [], "max_median_exposure": None},
-              "cover_crop_windows": [], "jobs": jobs, "origins": origins, "effective_thresholds": None}
+              "cover_crop_windows": [], "cover_crop_note": None, "jobs": jobs, "origins": origins, "effective_thresholds": None}
     wind_col = e["erosive_wind"]["power_parameter"]
     if not power.ok or power.origin == "fallback" or wind_col not in power.data.get("daily", {}):
         # без ветра своего поля считать нельзя: климат демо-поля или старый кэш без ветра не подставляем
@@ -186,9 +186,11 @@ async def compute(field: Field, start: int, end: int, rules: Rules, *, start_job
 
     clim = bs.climatology(years, e)
     frost = bs.frost_dates(df, e, range(start, end + 1))
+    cc = bs.cover_crop_windows(clim, years, frost, e, region)
+    harvest = e["cover_crop"]["harvest_end"].get(region) if region else None
     result.update(
         climatology=clim, headline=bs.headline(clim, e),
-        cover_crop_windows=bs.cover_crop_windows(clim, years, frost, e),
+        cover_crop_windows=cc["windows"], cover_crop_note=cc["note"],
         effective_thresholds={
             "ndvi_max": float(e["bare_soil"]["ndvi_max"].value),
             "ndvi_field_quantile": float(e["bare_soil"]["min_field_fraction"].value),
@@ -202,6 +204,7 @@ async def compute(field: Field, start: int, end: int, rules: Rules, *, start_job
             "last_frost_spring": frost["last_spring"].strftime("%m-%d") if frost["last_spring"] else None,
             "first_frost_autumn": frost["first_autumn"].strftime("%m-%d") if frost["first_autumn"] else None,
             "frost_years": frost["n_years"],
+            "harvest_end": harvest.value if harvest is not None else None,
         },
     )
 
@@ -260,13 +263,13 @@ def _sources(origins: dict) -> list[dict]:
 
 
 async def bare_soil(field_id: int, geometry: dict, start_year: int | None, end_year: int | None,
-                    rules: Rules | None = None, *, start_jobs: bool = True) -> dict:
+                    rules: Rules | None = None, *, start_jobs: bool = True, region: str | None = None) -> dict:
     """Ответ по контракту. ``rules`` — правила с порогами erosion.yaml (по умолчанию ``get_rules()``);
     аудит (``make audit``) передаёт правила с другим порогом NDVI для оценки чувствительности."""
     rules = rules or get_rules()
     start, end = resolve_period(start_year, end_year)
     field = parse_field(geometry)
-    r = await compute(field, start, end, rules, start_jobs=start_jobs)
+    r = await compute(field, start, end, rules, start_jobs=start_jobs, region=region)
     body = {
         "field_id": field_id,
         "period": {"start_year": start, "end_year": end},
@@ -279,6 +282,7 @@ async def bare_soil(field_id: int, geometry: dict, start_year: int | None, end_y
         "years": r["years"],
         "climatology": r["climatology"],
         "cover_crop_windows": r["cover_crop_windows"],
+        "cover_crop_note": r["cover_crop_note"],
         "sources": _sources(r["origins"]),
         "warnings": [w.as_dict() for w in r["warnings"]],
     }

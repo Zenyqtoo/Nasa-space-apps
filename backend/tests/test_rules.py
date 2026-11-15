@@ -182,9 +182,19 @@ def test_loader_requires_erosion_file_and_groups(tmp_path):
     ("{value: 0.70, range: [0.70, 0.79]", "{value: 1.5, range: [0.70, 1.79]", "gwettop_fallback"),
     ("{value: 2, unit:", "{value: 7, unit:", "pixel_reliability"),
     ("ndvi_bare: bare_soil.ndvi_max", "ndvi_bare: bare_soil.ndvi_missing", "contract_thresholds"),
+    ('akmola:\n      {value: "10-01"', 'akmola:\n      {value: "10-32"', "harvest_end.akmola"),
+    ('akmola:\n      {value: "10-01"', 'akmola:\n      {value: "05-15"', "after season_split_month"),
+    ("    north_kazakhstan:\n      {value:", "    nko_renamed:\n      {value:", "no date for regions"),
 ])
 def test_loader_rejects_bad_erosion_values(tmp_path, old, new, match):
     d = _copy_rules(tmp_path)
     _replace(d, "erosion.yaml", old, new)
     with pytest.raises(RulesError, match=match):
         load_rules(d)
+
+
+def test_cover_crop_harvest_end_for_every_region(rules):
+    he = rules.erosion["cover_crop"]["harvest_end"]
+    assert set(he) == set(rules.regions)
+    for p in he.values():
+        assert p.status == "assumption" and p.note  # не агрономическая рекомендация: агроному проверить

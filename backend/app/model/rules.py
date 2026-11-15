@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from datetime import date
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -145,6 +146,15 @@ def _range(node: dict, path: str) -> tuple[float, float] | None:
     return lo, hi
 
 
+def parse_mmdd(x: Any) -> date | None:
+    """«ММ-ДД» → дата в невисокосном опорном году 2001 (как даты заморозков) или None."""
+    try:
+        m, d = str(x).split("-")
+        return date(2001, int(m), int(d)) if len(m) == len(d) == 2 else None
+    except ValueError:
+        return None
+
+
 def _is_number(x: Any) -> bool:
     return isinstance(x, int | float) and not isinstance(x, bool)
 
@@ -243,6 +253,9 @@ def load_rules(directory: Path | None = None) -> Rules:
     model = _convert(read("model.yaml"), "model", sources)
     erosion = _convert(read("erosion.yaml"), "erosion", sources)
     _validate_erosion(erosion)
+    missing_harvest = set(regions) - set(erosion["cover_crop"]["harvest_end"])
+    if missing_harvest:
+        raise RulesError(f"erosion.cover_crop.harvest_end: no date for regions {sorted(missing_harvest)}")
 
     required = (
         "base_yield_t_ha",
@@ -343,6 +356,15 @@ def _validate_erosion(e: Any) -> None:
     num("cover_crop", "max_partial_share_low_uncertainty", 0.0, 1.0)
     if e["cover_crop"].get("season_split_month") not in range(1, 12):
         raise RulesError("erosion.cover_crop.season_split_month: must be a month number 1–11")
+    harvest = e["cover_crop"].get("harvest_end")
+    if not isinstance(harvest, dict) or not harvest:
+        raise RulesError("erosion.cover_crop.harvest_end: must map region ids to rules with an 'MM-DD' value")
+    for rid, p in harvest.items():
+        d = parse_mmdd(p.value) if isinstance(p, Param) else None
+        if d is None:
+            raise RulesError(f"erosion.cover_crop.harvest_end.{rid}: value must be a valid 'MM-DD' date")
+        if d.month <= e["cover_crop"]["season_split_month"]:
+            raise RulesError(f"erosion.cover_crop.harvest_end.{rid}: harvest end must fall after season_split_month")
 
     for cid, ref in (e.get("contract_thresholds") or {}).items():
         node: Any = e

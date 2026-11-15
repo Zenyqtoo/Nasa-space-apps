@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 
 from ..data_sources.modis import COMPOSITE_STEP, QUANTILE_LEVELS, SEASON_DOY, shoulder_windows
+from ..model.rules import parse_mmdd
 
 #: окно одного композита MOD13Q1 — 16 дней от даты начала; середина — через 8 дней
 COMPOSITE_DAYS = COMPOSITE_STEP
@@ -341,27 +342,105 @@ def _num(x: float, lang: str) -> str:
     return s if lang == "en" else s.replace(".", ",")
 
 
-def _basis(months: list[int], med: float, p90: float, n_years: int, frost: date, days: int) -> dict:
-    names = {lang: "–".join(dict.fromkeys(MONTHS[lang][m - 1] for m in (months[0], months[-1]))) for lang in MONTHS}
-    fr = frost.strftime("%d.%m")
+def _month_names(months: list[int], lang: str) -> str:
+    return "–".join(dict.fromkeys(MONTHS[lang][m - 1] for m in (months[0], months[-1])))
+
+
+def _dm(d: date, lang: str) -> str:
+    return d.strftime("%d %b") if lang == "en" else d.strftime("%d.%m")
+
+
+def _basis(months: list[int], med: float, p90: float, n_years: int, frost: date, days: int, harvest: date) -> dict:
+    names = {lang: _month_names(months, lang) for lang in MONTHS}
+    fr, hv = frost.strftime("%d.%m"), harvest.strftime("%d.%m")
     return {
         "ru": f"{names['ru'].capitalize()}: медиана доли опасных дней {_num(med, 'ru')} (P90 {_num(p90, 'ru')}, "
               f"{n_years} лет). От начала окна до медианной даты первого осеннего заморозка ({fr}) — {days} дн. "
-              "Совместимость со сроками сева и уборки основной культуры не оценивалась.",
+              f"Окно начинается не раньше типичного окончания уборки в области ({hv}, допущение).",
         "kk": f"{names['kk'].capitalize()}: қауіпті күндер үлесінің медианасы {_num(med, 'kk')} (P90 {_num(p90, 'kk')}, "
               f"{n_years} жыл). Терезе басынан алғашқы күзгі үсіктің медиана күніне ({fr}) дейін {days} күн. "
-              "Негізгі дақылдың себу және жинау мерзімдерімен үйлесімі бағаланбаған." + KK_REVIEW,
+              f"Терезе облыста егін жинаудың әдеттегі аяқталуынан ({hv}, болжам) ерте басталмайды." + KK_REVIEW,
         "en": f"{names['en']}: median share of risky days {_num(med, 'en')} (P90 {_num(p90, 'en')}, {n_years} years). "
               f"{days} days from the window start to the median first autumn frost ({frost.strftime('%d %b')}). "
-              "Fit with the main crop's sowing and harvest dates was not assessed.",
+              f"The window starts no earlier than the typical end of harvest in the region "
+              f"({harvest.strftime('%d %b')}, assumption).",
     }
 
 
-def cover_crop_windows(clim: list[dict], years: list[dict], frost: dict, e: dict) -> list[dict]:
-    """Периоды с высокой медианой exposure, от начала которых до первого осеннего заморозка достаточно дней."""
+def _risky_list(runs: list[list[int]], by_month: dict, lang: str) -> str:
+    return ", ".join(f"{_month_names(r, lang)} ({_num(max(by_month[m]['exposure_median'] for m in r), lang)})"
+                     for r in runs)
+
+
+def _no_window_note(reason: str, *, in_season: list[list[int]], post: list[list[int]], by_month: dict,
+                    harvest: date | None, frost: date | None, min_days: int) -> dict:
+    """Почему окна нет: текст на трёх языках. ``in_season`` — опасные месяцы между севом и уборкой."""
+    texts: dict[str, list[str]] = {lang: [] for lang in MONTHS}
+    if reason == "no_harvest_date":
+        texts["ru"].append("Для области поля не задана типичная дата окончания уборки, поэтому окно не предлагается.")
+        texts["kk"].append("Алқап облысы үшін егін жинаудың әдеттегі аяқталу күні берілмеген, сондықтан терезе ұсынылмайды.")
+        texts["en"].append("No typical harvest end date is set for the field's region, so no window is offered.")
+    elif reason == "no_frost_data":
+        texts["ru"].append("Нет дат заморозков (POWER T2M_MIN по полным годам), поэтому окно не оценивается.")
+        texts["kk"].append("Үсік күндері жоқ (толық жылдар бойынша POWER T2M_MIN), сондықтан терезе бағаланбайды.")
+        texts["en"].append("No frost dates (POWER T2M_MIN for complete years), so no window is assessed.")
+    elif reason == "no_risky_months":
+        texts["ru"].append("Нет месяцев, где медиана доли опасных дней достигает порога окна.")
+        texts["kk"].append("Қауіпті күндер үлесінің медианасы терезе шегіне жететін ай жоқ.")
+        texts["en"].append("No month reaches the window threshold for the median share of risky days.")
+    if in_season and harvest is not None:
+        hv = {lang: _dm(harvest, lang) for lang in MONTHS}
+        texts["ru"].append(f"Опасные месяцы до окончания уборки ({hv['ru']}): {_risky_list(in_season, by_month, 'ru')} — "
+                           "в это время поле занято основной культурой (сев–уборка), покровную культуру не сеют.")
+        texts["kk"].append(f"Егін жинау аяқталғанға дейінгі ({hv['kk']}) қауіпті айлар: "
+                           f"{_risky_list(in_season, by_month, 'kk')} — бұл кезде алқапта негізгі дақыл өседі "
+                           "(себу–жинау), жабынды дақыл егілмейді.")
+        texts["en"].append(f"Risky months before the end of harvest ({hv['en']}): {_risky_list(in_season, by_month, 'en')} "
+                           "— the field is under the main crop (sowing to harvest), so no cover crop is sown then.")
+    if reason == "risk_before_harvest_only":
+        texts["ru"].append("После уборки ни один месяц не достигает порога окна.")
+        texts["kk"].append("Егін жинаудан кейін бірде-бір ай терезе шегіне жетпейді.")
+        texts["en"].append("After harvest no month reaches the window threshold.")
+    if reason == "frost_before_establishment" and harvest is not None and frost is not None:
+        days = (frost - harvest).days
+        fr = {lang: _dm(frost, lang) for lang in MONTHS}
+        hv = {lang: _dm(harvest, lang) for lang in MONTHS}
+        if days <= 0:
+            gap = {"ru": f"медиана первого осеннего заморозка ({fr['ru']}) приходится ещё до окончания уборки "
+                         f"({hv['ru']})",
+                   "kk": f"алғашқы күзгі үсіктің медианасы ({fr['kk']}) егін жинау аяқталғанға ({hv['kk']}) дейін түседі",
+                   "en": f"the median first autumn frost ({fr['en']}) comes before the end of harvest ({hv['en']})"}
+        else:
+            gap = {"ru": f"от окончания уборки ({hv['ru']}) до медианы первого осеннего заморозка ({fr['ru']}) "
+                         f"только {days} дн.",
+                   "kk": f"егін жинау аяқталғаннан ({hv['kk']}) алғашқы күзгі үсіктің медианасына ({fr['kk']}) дейін "
+                         f"тек {days} күн",
+                   "en": f"only {days} days from the end of harvest ({hv['en']}) to the median first autumn frost "
+                         f"({fr['en']})"}
+        texts["ru"].append(f"После уборки доля опасных дней высокая: {_risky_list(post, by_month, 'ru')}, но первый заморозок наступает "
+                           f"раньше, чем покровная культура успела бы взойти: {gap['ru']}, а нужно не меньше "
+                           f"{min_days} дн. без заморозка.")
+        texts["kk"].append(f"Егін жинаудан кейін қауіпті күндер үлесі жоғары: {_risky_list(post, by_month, 'kk')}, бірақ алғашқы "
+                           f"үсік жабынды дақыл көктеп үлгергенге дейін түседі: {gap['kk']}, ал кемінде {min_days} "
+                           "үсіксіз күн қажет.")
+        texts["en"].append(f"After harvest the share of risky days is high in {_risky_list(post, by_month, 'en')}, but the first frost comes "
+                           f"before a cover crop could establish: {gap['en']}, while at least {min_days} frost-free "
+                           "days are needed.")
+    basis = {lang: " ".join(t) for lang, t in texts.items()}
+    basis["kk"] += KK_REVIEW
+    return {"reason": reason, "basis": basis, "needs_review": ["kk"]}
+
+
+def cover_crop_windows(clim: list[dict], years: list[dict], frost: dict, e: dict,
+                       region: str | None) -> dict:
+    """Окна покровных культур только после уборки основной культуры.
+
+    Окно — непрерывный ряд месяцев с высокой медианой exposure, обрезанный так, что оно начинается не раньше
+    ``cover_crop.harvest_end`` области (и после последнего весеннего заморозка), кончается до первого осеннего
+    заморозка, и от его начала до заморозка не меньше ``min_frost_free_days``. Возвращает ``{"windows", "note"}``:
+    ``note`` — почему окна нет (только при пустом списке)."""
     cc = e["cover_crop"]
-    if frost["first_autumn"] is None:
-        return []
+    min_days = int(cc["min_frost_free_days"].value)
     min_years = int(v(e, "climatology", "min_years"))
     hot = [c["month"] for c in clim if c["exposure_median"] is not None and c["n_years"] >= min_years
            and c["exposure_median"] >= float(cc["min_median_exposure"].value)]
@@ -372,14 +451,37 @@ def cover_crop_windows(clim: list[dict], years: list[dict], frost: dict, e: dict
         else:
             runs.append([m])
     by_month = {c["month"]: c for c in clim}
+    hp = cc["harvest_end"].get(region) if region else None
+    harvest = parse_mmdd(hp.value) if hp is not None else None
+
+    def month_end(m: int) -> date:
+        return date(REF_YEAR, m, calendar.monthrange(REF_YEAR, m)[1])
+
+    # месяцы между севом и уборкой (до harvest_end) и после уборки
+    in_season = [[m for m in r if harvest is None or month_end(m) < harvest] for r in runs]
+    post = [[m for m in r if harvest is not None and month_end(m) >= harvest] for r in runs]
+    in_season, post = [r for r in in_season if r], [r for r in post if r]
+
+    def note(reason: str) -> dict:
+        return {"windows": [], "note": _no_window_note(reason, in_season=in_season, post=post, by_month=by_month,
+                                                      harvest=harvest, frost=frost["first_autumn"],
+                                                      min_days=min_days)}
+
+    if harvest is None:
+        return note("no_harvest_date")
+    if frost["first_autumn"] is None:
+        return note("no_frost_data")
+    if not runs:
+        return note("no_risky_months")
+    if not post:
+        return note("risk_before_harvest_only")
     out = []
-    for run in runs:
+    for run in post:
         first = date(REF_YEAR, run[0], 1)
-        last = date(REF_YEAR, run[-1], calendar.monthrange(REF_YEAR, run[-1])[1])
-        start = max(first, frost["last_spring"] + timedelta(days=1))
-        end = min(last, frost["first_autumn"] - timedelta(days=1))
+        start = max(first, frost["last_spring"] + timedelta(days=1), harvest)
+        end = min(month_end(run[-1]), frost["first_autumn"] - timedelta(days=1))
         remaining = (frost["first_autumn"] - start).days
-        if start > end or remaining < int(cc["min_frost_free_days"].value):
+        if start > end or remaining < min_days:
             continue
         med = max(by_month[m]["exposure_median"] for m in run)
         p90 = max(by_month[m]["exposure_p90"] for m in run)
@@ -394,6 +496,8 @@ def cover_crop_windows(clim: list[dict], years: list[dict], frost: dict, e: dict
         else:
             unc = "medium"
         out.append({"start": start.strftime("%m-%d"), "end": end.strftime("%m-%d"),
-                    "basis": _basis(run, med, p90, n_years, frost["first_autumn"], remaining),
+                    "basis": _basis(run, med, p90, n_years, frost["first_autumn"], remaining, harvest),
                     "uncertainty": unc, "needs_review": ["kk"]})
-    return out
+    if not out:
+        return note("frost_before_establishment")
+    return {"windows": out, "note": None}

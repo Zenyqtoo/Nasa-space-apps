@@ -373,6 +373,7 @@ def _bare_soil_case(body: dict, t: float, current: float) -> dict:
         "max_median_exposure": body["headline"]["max_median_exposure"],
         "climatology_median": {c["month"]: c["exposure_median"] for c in body["climatology"]},
         "cover_crop_windows": [{k: w[k] for k in ("start", "end", "uncertainty")} for w in body["cover_crop_windows"]],
+        "cover_crop_note": body["cover_crop_note"],
         "effective_thresholds": body["effective_thresholds"],
     }
 
@@ -424,7 +425,8 @@ async def bare_soil_sensitivity(rules) -> list[dict]:
         cases = []
         for t in rules.erosion["bare_soil"]["sensitivity_values"]:
             body = await bare_soil(0, rec["geometry"], *BARE_SOIL_PERIOD,
-                                   rules=patch_erosion(rules, "bare_soil", "ndvi_max", t), start_jobs=False)
+                                   rules=patch_erosion(rules, "bare_soil", "ndvi_max", t), start_jobs=False,
+                                   region=rec["region"])
             cases.append(_bare_soil_case(body, t, current))
         eff = next(c for c in cases if c["is_rule_value"])["effective_thresholds"]
         out.append({"id": rec["id"], "name": rec["name"]["ru"], "area_ha": rec.get("area_ha"), "cases": cases,
@@ -677,6 +679,16 @@ def write_markdown(r: dict, rules) -> None:
                      f"{num(eff['gwettop'], 2)} ({eff['gwettop_basis']}, {eff['gwettop_pairs']} общих дней), "
                      f"медианы заморозков {eff['last_frost_spring']} / {eff['first_frost_autumn']}")
         (next(x for x in f["cases"] if x["is_rule_value"])["effective_thresholds"]) for f in bsr["fields"]) + "."]
+    L += ["", "### Окна покровных культур (порог из правил)", "",
+          "Окно начинается не раньше типичного окончания уборки в области (`cover_crop.harvest_end`) и кончается до "
+          "медианы первого осеннего заморозка; от начала окна до заморозка — не меньше `cover_crop.min_frost_free_days`.",
+          "", "| Поле | Уборка до | Первый заморозок | Окна | Почему окна нет |", "|---|---|---|---|---|"]
+    for f in bsr["fields"]:
+        c = next(x for x in f["cases"] if x["is_rule_value"])
+        eff, note = c["effective_thresholds"], c["cover_crop_note"]
+        wins = ", ".join(f"{w['start']}…{w['end']} ({w['uncertainty']})" for w in c["cover_crop_windows"]) or "нет"
+        L.append(f"| {f['name']} | {eff.get('harvest_end')} | {eff['first_frost_autumn']} | {wins} | "
+                 f"{(note['reason'] + ': ' + note['basis']['ru']) if note else ''} |")
     L += ["", "### Сухой верхний слой: GWETTOP и SMAP по месяцам", "",
           "Порог GWETTOP подобран по всем общим бесснежным дням апреля–октября сразу (`dry_topsoil.gwettop_method: "
           "cdf_match`). Таблица проверяет, совпадает ли доля сухих дней GWETTOP с SMAP **в каждом месяце** на общих днях; "
