@@ -162,7 +162,8 @@ async def compute(field: Field, start: int, end: int, rules: Rules, *, start_job
     gw = bs.gwettop_threshold(df, sm, smap_thr, snow, e)
     modis_data = [slow[s][0].data for s in ("modis", "modis_shoulder") if slow[s][0] is not None]
     comps = bs.composites(modis_data, e)
-    daily = bs.daily_conditions(df, comps, sm, smap_thr, gw["value"], e, date(start, 1, 1), date(end, 12, 31))
+    gw_by_month = {m: x["value"] for m, x in gw["by_month"].items()}
+    daily = bs.daily_conditions(df, comps, sm, smap_thr, gw_by_month, e, date(start, 1, 1), date(end, 12, 31))
     weather_days = df.index[df[wind_col].notna()]
     last_weather = weather_days[-1].date() if len(weather_days) else None
     ndvi_ready = {cov: slow[sid][1]["status"] == "ready" for cov, sid in NDVI_COVERAGE.items()}
@@ -201,6 +202,10 @@ async def compute(field: Field, start: int, end: int, rules: Rules, *, start_job
             "gwettop": gw["value"],
             "gwettop_basis": gw["basis"],
             "gwettop_pairs": gw["pairs"],
+            "gwettop_method": e["dry_topsoil"]["gwettop_method"],
+            # месяцы с порогом, подобранным по своему месяцу (basis: month); остальные — общий порог gwettop
+            "gwettop_by_month": [{"month": m, "value": x["value"], "pairs": x["pairs"]}
+                                 for m, x in gw["by_month"].items() if x["basis"] == "month"],
             "last_frost_spring": frost["last_spring"].strftime("%m-%d") if frost["last_spring"] else None,
             "first_frost_autumn": frost["first_autumn"].strftime("%m-%d") if frost["first_autumn"] else None,
             "frost_years": frost["n_years"],

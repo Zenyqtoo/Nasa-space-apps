@@ -330,8 +330,13 @@ def _validate_erosion(e: Any) -> None:
     num("dry_topsoil", "gwettop_fallback", 0.0, 1.0, open_lo=True)
     if num("dry_topsoil", "gwettop_min_pairs", 1, 10_000) != int(dry["gwettop_min_pairs"].value):
         raise RulesError("erosion.dry_topsoil.gwettop_min_pairs: must be an integer")
-    if dry.get("gwettop_method") != "cdf_match":
-        raise RulesError("erosion.dry_topsoil.gwettop_method: only 'cdf_match' is supported")
+    if dry.get("gwettop_method") not in ("cdf_match", "cdf_match_monthly"):
+        raise RulesError("erosion.dry_topsoil.gwettop_method: must be 'cdf_match' or 'cdf_match_monthly'")
+    if dry["gwettop_method"] == "cdf_match_monthly":
+        if not isinstance(dry.get("gwettop_min_pairs_month"), Param):
+            raise RulesError("erosion.dry_topsoil.gwettop_min_pairs_month: required for cdf_match_monthly")
+        if num("dry_topsoil", "gwettop_min_pairs_month", 1, 10_000) != int(dry["gwettop_min_pairs_month"].value):
+            raise RulesError("erosion.dry_topsoil.gwettop_min_pairs_month: must be an integer")
     if dry.get("gwettop_month_quality") not in ("ok", "partial"):
         raise RulesError("erosion.dry_topsoil.gwettop_month_quality: must be 'ok' or 'partial'")
 

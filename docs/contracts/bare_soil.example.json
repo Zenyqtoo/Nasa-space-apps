@@ -15,7 +15,7 @@
     { "id": "erosive_wind_ms", "value": 6.0, "unit": "m/s at 10 m", "source": "example_source", "status": "assumption", "evidence": "preliminary", "note": "Example threshold" },
     { "id": "dry_topsoil", "value": 0.15, "unit": "m3/m3 (SMAP) or GWETTOP fraction", "source": "example_source", "status": "assumption", "evidence": "preliminary", "note": "Example threshold" }
   ],
-  "effective_thresholds": { "ndvi_max": 0.3, "ndvi_field_quantile": 0.5, "wind_parameter": "WS2M_MAX", "wind_ms": 5.0, "smap_m3m3": 0.2, "smap_basis": "wilting_point_0_5cm", "gwettop": 0.75, "gwettop_basis": "cdf_match", "gwettop_pairs": 500, "last_frost_spring": "05-10", "first_frost_autumn": "09-28", "frost_years": 11, "harvest_end": "10-01" },
+  "effective_thresholds": { "ndvi_max": 0.3, "ndvi_field_quantile": 0.5, "wind_parameter": "WS2M_MAX", "wind_ms": 5.0, "smap_m3m3": 0.2, "smap_basis": "wilting_point_0_5cm", "gwettop": 0.75, "gwettop_basis": "cdf_match", "gwettop_pairs": 500, "gwettop_method": "cdf_match_monthly", "gwettop_by_month": [{ "month": 4, "value": 0.79, "pairs": 135 }, { "month": 8, "value": 0.62, "pairs": 270 }], "last_frost_spring": "05-10", "first_frost_autumn": "09-28", "frost_years": 11, "harvest_end": "10-01" },
   "years": [
     {
       "year": 2025,

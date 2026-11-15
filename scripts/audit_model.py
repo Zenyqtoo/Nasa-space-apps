@@ -372,6 +372,12 @@ def _bare_soil_case(body: dict, t: float, current: float) -> dict:
         "top_months": body["headline"]["top_months"],
         "max_median_exposure": body["headline"]["max_median_exposure"],
         "climatology_median": {c["month"]: c["exposure_median"] for c in body["climatology"]},
+        "pooled_by_month": {mo: (round(sum(m["joint_days"] for m in ok if m["month"] == mo) /
+                                       sum(m["known_days"] for m in ok if m["month"] == mo), 4)
+                                 if sum(m["known_days"] for m in ok if m["month"] == mo) else None)
+                            for mo in range(1, 13)},
+        "gwettop_days_by_month": {mo: sum(m["moisture_source"] in ("power_gwettop", "mixed") for m in ok
+                                          if m["month"] == mo) for mo in range(1, 13)},
         "cover_crop_windows": [{k: w[k] for k in ("start", "end", "uncertainty")} for w in body["cover_crop_windows"]],
         "cover_crop_note": body["cover_crop_note"],
         "effective_thresholds": body["effective_thresholds"],
@@ -399,6 +405,7 @@ def gwettop_vs_smap_by_month(directory: Path, eff: dict, rules) -> list[dict]:
     gw = df["GWETTOP"].astype(float)
     common = sm.index.intersection(gw.dropna().index)
     common = common[~snow.reindex(common, fill_value=False).to_numpy(dtype=bool)]
+    by_month = {x["month"]: x["value"] for x in eff.get("gwettop_by_month") or []}
     out = []
     for m in range(4, 11):
         days = df.index[(df.index.month == m) & ~snow.to_numpy(dtype=bool)]
@@ -409,6 +416,8 @@ def gwettop_vs_smap_by_month(directory: Path, eff: dict, rules) -> list[dict]:
         out.append({"month": m, "days": len(days), "smap_days": int(sm.index.isin(days).sum()), "pairs": len(c),
                     "smap_dry_share": round(smap_dry, 3),
                     "gwettop_dry_share_same_days": round(float((gw.loc[c] < eff["gwettop"]).mean()), 3),
+                    "gwettop_applied_threshold": by_month.get(m, eff["gwettop"]),
+                    "gwettop_dry_share_applied": round(float((gw.loc[c] < by_month.get(m, eff["gwettop"])).mean()), 3),
                     "gwettop_month_threshold": round(float(np.quantile(gw.loc[c], smap_dry)) if smap_dry > 0
                                                      else float(gw.loc[c].min()), 3)})
     return out
@@ -429,7 +438,13 @@ async def bare_soil_sensitivity(rules) -> list[dict]:
                                    region=rec["region"])
             cases.append(_bare_soil_case(body, t, current))
         eff = next(c for c in cases if c["is_rule_value"])["effective_thresholds"]
+        # «до»: один порог GWETTOP на все месяцы (gwettop_method: cdf_match), остальные правила те же
+        single = dataclasses.replace(rules, erosion={**rules.erosion, "dry_topsoil": {
+            **rules.erosion["dry_topsoil"], "gwettop_method": "cdf_match"}})
+        body = await bare_soil(0, rec["geometry"], *BARE_SOIL_PERIOD, rules=single, start_jobs=False,
+                               region=rec["region"])
         out.append({"id": rec["id"], "name": rec["name"]["ru"], "area_ha": rec.get("area_ha"), "cases": cases,
+                    "gwettop_single": _bare_soil_case(body, current, current),
                     "dry_by_month": gwettop_vs_smap_by_month(Path(rec["_dir"]), eff, rules)})
     return out
 
@@ -690,17 +705,43 @@ def write_markdown(r: dict, rules) -> None:
         L.append(f"| {f['name']} | {eff.get('harvest_end')} | {eff['first_frost_autumn']} | {wins} | "
                  f"{(note['reason'] + ': ' + note['basis']['ru']) if note else ''} |")
     L += ["", "### Сухой верхний слой: GWETTOP и SMAP по месяцам", "",
-          "Порог GWETTOP подобран по всем общим бесснежным дням апреля–октября сразу (`dry_topsoil.gwettop_method: "
-          "cdf_match`). Таблица проверяет, совпадает ли доля сухих дней GWETTOP с SMAP **в каждом месяце** на общих днях; "
-          "«порог при подборе по месяцу» — какой порог дал бы совпадение в этом месяце (справочно, в расчёте не "
-          "используется). GWETTOP применяется только в дни без SMAP. См. `docs/MODEL_AUDIT.md`, раздел 6.", "",
-          "| Поле | Месяц | Бесснежных дней | Из них со SMAP | Сухо по SMAP | Сухо по GWETTOP (порог поля) | "
-          "Порог при подборе по месяцу |", "|---|---|---|---|---|---|---|"]
+          "Общий порог GWETTOP подобран по всем общим бесснежным дням апреля–октября сразу; с 15.11.2026 "
+          "(`dry_topsoil.gwettop_method: cdf_match_monthly`) в расчёте применяется порог, подобранный по своему месяцу, "
+          "если у месяца не меньше `gwettop_min_pairs_month` общих дней, иначе общий. Таблица проверяет, совпадает ли "
+          "доля сухих дней GWETTOP с SMAP **в каждом месяце** на общих днях (период аудита; применённый порог подобран "
+          "по всем годам с данными, поэтому может немного отличаться от «порога при подборе по месяцу»). GWETTOP "
+          "применяется только в дни без SMAP. См. `docs/MODEL_AUDIT.md`, раздел 6.", "",
+          "| Поле | Месяц | Бесснежных дней | Из них со SMAP | Сухо по SMAP | Сухо по GWETTOP (общий порог) | "
+          "Порог при подборе по месяцу | Применённый порог | Сухо по GWETTOP (применённый порог) |",
+          "|---|---|---|---|---|---|---|---|---|"]
     for f in bsr["fields"]:
         for r in f.get("dry_by_month", []):
             L.append(f"| {f['name']} | {MONTH_RU[r['month'] - 1]} | {r['days']} | {r['smap_days']} | "
                      f"{r['smap_dry_share'] * 100:.0f} % | {r['gwettop_dry_share_same_days'] * 100:.0f} % | "
-                     f"{num(r['gwettop_month_threshold'], 2)} |")
+                     f"{num(r['gwettop_month_threshold'], 2)} | {num(r['gwettop_applied_threshold'], 2)} | "
+                     f"{r['gwettop_dry_share_applied'] * 100:.0f} % |")
+    L += ["", "### Exposure по месяцам: один порог GWETTOP («до») и порог по месяцам («после»)", "",
+          "Порог NDVI из правил; меняется только `dry_topsoil.gwettop_method` (`cdf_match` → `cdf_match_monthly`). "
+          "Медиана — по годам (`climatology`); «все годы» — сумма опасных дней / сумма известных дней месяца. "
+          "«Мес. с GWETTOP» — сколько посчитанных месяцев хотя бы частично опираются на GWETTOP.", "",
+          "| Поле | Показатель | " + " | ".join(MONTH_RU[3:11]) + " |", "|---|---|" + "---|" * 8]
+    for f in bsr["fields"]:
+        before, after = f["gwettop_single"], next(x for x in f["cases"] if x["is_rule_value"])
+
+        def row(label, c, key, digits=2):
+            d = c[key]
+            return (f"| {f['name']} | {label} | " +
+                    " | ".join(num(d.get(m, d.get(str(m))), digits) if key != "gwettop_days_by_month"
+                               else str(d.get(m, d.get(str(m)))) for m in range(4, 12)) + " |")
+        L += [row("медиана, до", before, "climatology_median"), row("медиана, после", after, "climatology_median"),
+              row("все годы, до", before, "pooled_by_month", 3), row("все годы, после", after, "pooled_by_month", 3),
+              row("мес. с GWETTOP", after, "gwettop_days_by_month")]
+    L += ["", "Самые опасные месяцы: " + "; ".join(
+        f"{f['name']} — до {', '.join(MONTH_RU[m - 1] for m in f['gwettop_single']['top_months']) or '—'}, после "
+        f"{', '.join(MONTH_RU[m - 1] for m in next(x for x in f['cases'] if x['is_rule_value'])['top_months']) or '—'}"
+        for f in bsr["fields"]) + ". Окна покровных культур: " + "; ".join(
+        f"{f['name']} — до {len(f['gwettop_single']['cover_crop_windows'])}, после "
+        f"{len(next(x for x in f['cases'] if x['is_rule_value'])['cover_crop_windows'])}" for f in bsr["fields"]) + "."]
     (OUT / "AUDIT_TABLES.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 

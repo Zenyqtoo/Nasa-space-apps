@@ -133,8 +133,12 @@ def test_erosion_thresholds_are_the_agreed_values(rules):
     assert "Зайцев" in wind["speed_ms"].note and "ru-ecology.info" in wind["speed_ms"].note
     dry = e["dry_topsoil"]
     assert dry["smap_wilting_point_factor"].source_id == "chepil_1956"
-    assert dry["gwettop_method"] == "cdf_match" and dry["gwettop_month_quality"] == "partial"
+    assert dry["gwettop_method"] == "cdf_match_monthly" and dry["gwettop_month_quality"] == "partial"
     assert dry["gwettop_fallback"].evidence == "preliminary"
+    # подбор по месяцам не меняет другие пороги сухости
+    assert (dry["gwettop_fallback"].value, dry["gwettop_min_pairs"].value, dry["smap_wilting_point_factor"].value,
+            dry["smap_fallback_m3m3"].value) == (0.70, 60, 1.0, 0.20)
+    assert dry["gwettop_min_pairs_month"].value == 60 and dry["gwettop_min_pairs_month"].evidence == "preliminary"
     assert e["snow"]["modis_reliability_snow"].value == 2
     # Зайцева упомянута только в пояснении: источника, на который ссылалось бы значение, нет
     assert not any("zaitseva" in sid or "ru_ecology" in sid for sid in rules.sources)
@@ -178,7 +182,8 @@ def test_loader_requires_erosion_file_and_groups(tmp_path):
     ("reference_height_m: 2", "reference_height_m: 3", "reference_height_m"),
     ("power_parameter: WS2M_MAX", "power_parameter: WS10M_MAX", "power_parameter"),
     ("sensitivity_values: [0.25, 0.30]", "sensitivity_values: [0.25]", "sensitivity_values"),
-    ("gwettop_method: cdf_match", "gwettop_method: linear", "gwettop_method"),
+    ("gwettop_method: cdf_match_monthly", "gwettop_method: linear", "gwettop_method"),
+    ("  gwettop_min_pairs_month:\n", "  gwettop_min_pairs_month_renamed:\n", "gwettop_min_pairs_month"),
     ("{value: 0.70, range: [0.70, 0.79]", "{value: 1.5, range: [0.70, 1.79]", "gwettop_fallback"),
     ("{value: 2, unit:", "{value: 7, unit:", "pixel_reliability"),
     ("ndvi_bare: bare_soil.ndvi_max", "ndvi_bare: bare_soil.ndvi_missing", "contract_thresholds"),

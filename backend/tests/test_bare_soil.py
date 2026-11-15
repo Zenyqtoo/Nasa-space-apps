@@ -173,6 +173,9 @@ def test_thresholds_in_response_come_from_rules(ctx):
     assert eff["ndvi_max"] == e["bare_soil"]["ndvi_max"].value
     assert eff["wind_parameter"] == e["erosive_wind"]["power_parameter"]
     assert eff["gwettop_basis"] == "cdf_match" and eff["gwettop_pairs"] >= e["dry_topsoil"]["gwettop_min_pairs"].value
+    assert eff["gwettop_method"] == "cdf_match_monthly"
+    for x in eff["gwettop_by_month"]:
+        assert 4 <= x["month"] <= 10 and x["pairs"] >= e["dry_topsoil"]["gwettop_min_pairs_month"].value
 
 
 def test_climatology_and_headline_shape(ctx):
@@ -417,6 +420,61 @@ def test_gwettop_threshold_cdf_match_and_fallback():
     assert float((df["GWETTOP"] < gw["value"]).mean()) == pytest.approx(share_smap, abs=0.02)
     few = bs.gwettop_threshold(df, sm.iloc[:5], 0.15, snow, E)
     assert few["basis"] == "fallback" and few["value"] == GW_THR
+
+
+def _seasonal_series():
+    """4 года апреля и августа: GWETTOP распределён одинаково, SMAP сух в апреле в 20 % дней, в августе — в 90 %."""
+    rng = np.random.default_rng(0)
+    days = pd.DatetimeIndex([d for y in range(2016, 2020) for m in (4, 8)
+                             for d in pd.date_range(f"{y}-{m:02d}-01", periods=30, freq="D")])
+    gw = pd.Series(rng.uniform(0.5, 0.9, len(days)), index=days)
+    dry_share = np.where(days.month == 4, 0.2, 0.9)
+    sm = pd.Series(np.where(rng.uniform(size=len(days)) < dry_share, 0.10, 0.30), index=days)
+    return pd.DataFrame({"GWETTOP": gw}), sm, pd.Series(False, index=days)
+
+
+def test_gwettop_threshold_by_month_removes_seasonal_bias():
+    df, sm, snow = _seasonal_series()
+    gw = bs.gwettop_threshold(df, sm, 0.15, snow, E)
+    assert E["dry_topsoil"]["gwettop_method"] == "cdf_match_monthly"
+    assert gw["basis"] == "cdf_match" and set(gw["by_month"]) == set(range(1, 13))
+    for m in (4, 8):
+        bm = gw["by_month"][m]
+        assert bm["basis"] == "month" and bm["pairs"] == 120
+        d = df.index.month == m
+        smap_dry = float((sm[d] < 0.15).mean())
+        assert float((df["GWETTOP"][d] < bm["value"]).mean()) == pytest.approx(smap_dry, abs=0.02)
+        # общий порог в этом месяце ошибается сильнее
+        single = float((df["GWETTOP"][d] < gw["value"]).mean())
+        assert abs(single - smap_dry) > 0.2
+    assert gw["by_month"][4]["value"] < gw["value"] < gw["by_month"][8]["value"]
+    # месяцы без SMAP — общий порог
+    assert gw["by_month"][1] == {"value": gw["value"], "basis": "overall", "pairs": 0}
+
+
+def test_gwettop_month_with_few_pairs_uses_overall_threshold():
+    df, sm, snow = _seasonal_series()
+    min_month = E["dry_topsoil"]["gwettop_min_pairs_month"].value
+    keep = (sm.index.month == 8) | (sm.index.year == 2016)  # в апреле только 30 общих дней
+    assert 30 < min_month
+    gw = bs.gwettop_threshold(df, sm[keep], 0.15, snow, E)
+    assert gw["by_month"][4] == {"value": gw["value"], "basis": "overall", "pairs": 30}
+    assert gw["by_month"][8]["basis"] == "month"
+
+
+def test_gwettop_single_method_keeps_one_threshold():
+    df, sm, snow = _seasonal_series()
+    dry = {**E["dry_topsoil"], "gwettop_method": "cdf_match"}
+    gw = bs.gwettop_threshold(df, sm, 0.15, snow, {**E, "dry_topsoil": dry})
+    assert all(x["basis"] == "overall" and x["value"] == gw["value"] for x in gw["by_month"].values())
+
+
+def test_daily_conditions_use_monthly_gwettop_threshold():
+    df = power_df(date(2024, 4, 1), date(2024, 5, 31), GWETTOP=0.75)
+    thr = {m: 0.70 for m in range(1, 13)} | {4: 0.80}
+    d = bs.daily_conditions(df, [], pd.Series(dtype=float), SMAP_THR, thr, E, date(2024, 4, 1), date(2024, 5, 31))
+    assert d.loc["2024-04", "dry"].all() and not d.loc["2024-05", "dry"].any()
+    assert (d["moisture"] == "gwettop").all()
 
 
 def test_smap_preferred_over_gwettop():

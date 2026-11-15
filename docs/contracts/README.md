@@ -72,7 +72,7 @@ NDVI не отличает стерню от открытой почвы. Поэ
 - `jobs` — `{source, status, job}`, где `job` — состояние фоновой задачи (как в `/api/jobs/{id}`). Только реально
   запущенные загрузки: `modis`, `modis_shoulder`, `smap_season`; недоступность без задачи (нет сети, нет токена) — в `warnings`.
 - `effective_thresholds` *(добавлено в задаче 4, необязательное)* — пороги, фактически применённые к полю: θ_wp слоя
-  0–5 см из SoilGrids, порог GWETTOP (`cdf_match` по SMAP или `fallback`), медианы дат заморозков, типичное окончание уборки в области (`harvest_end`).
+  0–5 см из SoilGrids, порог GWETTOP (`cdf_match` по SMAP или `fallback`), медианы дат заморозков, типичное окончание уборки в области (`harvest_end`). `gwettop_method` — `cdf_match` или `cdf_match_monthly`; `gwettop_by_month` — список `{month, value, pairs}` только для месяцев, где порог GWETTOP подобран по своему месяцу (в остальных — общий `gwettop`).
 - `headline.top_months` — до `headline.top_n` месяцев с наибольшей медианой exposure (> 0), по убыванию.
 - `cover_crop_windows[].needs_review` *(добавлено в задаче 4)* — языки текста `basis`, требующие вычитки (`["kk"]`).
   `uncertainty`: `low` | `medium` | `high` по числу лет и доле частичных месяцев (`cover_crop` в `erosion.yaml`).

@@ -135,26 +135,48 @@ def power_snow(df: pd.DataFrame, e: dict) -> pd.Series:
     return (fr & dp).fillna(False)
 
 
+def _cdf_match(gw: np.ndarray, smap_dry: float) -> float:
+    """Порог GWETTOP, ниже которого та же доля дней, что у SMAP ниже своего порога."""
+    return float(np.min(gw)) if smap_dry <= 0 else float(np.quantile(gw, smap_dry))
+
+
 def gwettop_threshold(df: pd.DataFrame, sm: pd.Series, smap_thr: float, snow: pd.Series, e: dict) -> dict:
     """Порог GWETTOP для поля: доля дней GWETTOP < порога равна доле дней SMAP < smap_thr
-    на общих бесснежных днях (сопоставление распределений). Мало общих дней — gwettop_fallback."""
+    на общих бесснежных днях (сопоставление распределений). Мало общих дней — gwettop_fallback.
+
+    При ``dry_topsoil.gwettop_method: cdf_match_monthly`` порог подбирается ещё и по каждому календарному месяцу
+    (общие дни этого месяца за все годы). Месяц, где общих дней меньше ``gwettop_min_pairs_month``, получает общий
+    порог. ``by_month`` — {месяц: {value, basis: month | overall, pairs}} для месяцев 1–12."""
     gw = df["GWETTOP"].astype(float) if "GWETTOP" in df else pd.Series(dtype=float)
     common = sm.index.intersection(gw.dropna().index)
     common = common[~snow.reindex(common, fill_value=False).to_numpy(dtype=bool)]
     n = len(common)
     if n < int(v(e, "dry_topsoil", "gwettop_min_pairs")):
-        return {"value": float(v(e, "dry_topsoil", "gwettop_fallback")), "basis": "fallback", "pairs": n}
-    p = float((sm.loc[common] < smap_thr).mean())
-    g = gw.loc[common].to_numpy()
-    thr = float(np.min(g)) if p <= 0 else float(np.quantile(g, p))
-    return {"value": round(thr, 4), "basis": "cdf_match", "pairs": n, "smap_dry_share": round(p, 3)}
+        out = {"value": float(v(e, "dry_topsoil", "gwettop_fallback")), "basis": "fallback", "pairs": n}
+    else:
+        p = float((sm.loc[common] < smap_thr).mean())
+        out = {"value": round(_cdf_match(gw.loc[common].to_numpy(), p), 4), "basis": "cdf_match", "pairs": n,
+               "smap_dry_share": round(p, 3)}
+    by_month: dict[int, dict] = {}
+    monthly = e["dry_topsoil"]["gwettop_method"] == "cdf_match_monthly"
+    min_month = int(v(e, "dry_topsoil", "gwettop_min_pairs_month")) if monthly else 0
+    for m in range(1, 13):
+        c = common[common.month == m]
+        if monthly and out["basis"] == "cdf_match" and len(c) >= min_month:
+            p = float((sm.loc[c] < smap_thr).mean())
+            by_month[m] = {"value": round(_cdf_match(gw.loc[c].to_numpy(), p), 4), "basis": "month",
+                           "pairs": len(c)}
+        else:
+            by_month[m] = {"value": out["value"], "basis": "overall", "pairs": len(c)}
+    return {**out, "by_month": by_month}
 
 
 def daily_conditions(
-    df: pd.DataFrame, comps: list[Composite], sm: pd.Series, smap_thr: float, gw_thr: float,
+    df: pd.DataFrame, comps: list[Composite], sm: pd.Series, smap_thr: float, gw_thr: float | dict[int, float],
     e: dict, start: date, end: date,
 ) -> pd.DataFrame:
-    """Суточная таблица с ``start`` по ``end``: snow, ndvi, ndvi_proxy, bare, windy, dry, moisture."""
+    """Суточная таблица с ``start`` по ``end``: snow, ndvi, ndvi_proxy, bare, windy, dry, moisture.
+    ``gw_thr`` — порог GWETTOP: одно число или {месяц: порог} (подбор по месяцам)."""
     idx = pd.date_range(start, end, freq="D")
     power = df.reindex(idx)
     n = len(idx)
@@ -205,7 +227,11 @@ def daily_conditions(
     moisture = np.array([None] * n, dtype=object)
     has_sm, has_gw = ~np.isnan(smv), np.isnan(smv) & ~np.isnan(gw)
     dry[has_sm] = smv[has_sm] < smap_thr
-    dry[has_gw] = gw[has_gw] < gw_thr
+    if isinstance(gw_thr, dict):
+        thr = np.array([gw_thr[m] for m in idx.month], dtype=float)
+    else:
+        thr = np.full(n, float(gw_thr))
+    dry[has_gw] = gw[has_gw] < thr[has_gw]
     moisture[has_sm], moisture[has_gw] = "smap", "gwettop"
 
     out = pd.DataFrame({"snow": snow, "ndvi": ndvi, "ndvi_proxy": proxy, "bare": bare, "windy": windy, "dry": dry,
